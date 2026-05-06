@@ -144,6 +144,108 @@ function founderEmailHtml(params: PayoutEmailParams): string {
 </html>`;
 }
 
+export interface BulkPayoutSummaryParams {
+  founderEmail: string;
+  items: Array<{ name: string; amountUsd: number; txSig: string | null; error?: string }>;
+  totalAmountUsd: number;
+}
+
+function bulkSummaryEmailHtml(params: BulkPayoutSummaryParams): string {
+  const { items, totalAmountUsd } = params;
+  const total = formatAmount(totalAmountUsd);
+  const now = new Date().toLocaleString("en-US", {
+    month: "short", day: "numeric", year: "numeric",
+    hour: "2-digit", minute: "2-digit", timeZoneName: "short",
+  });
+  const doneCount = items.filter((i) => i.txSig).length;
+  const failedCount = items.filter((i) => !i.txSig).length;
+
+  const rows = items
+    .map((item, idx) => {
+      const bg = idx % 2 === 0 ? "#111113" : "#161618";
+      const statusColor = item.txSig ? "#00D97E" : "#E05252";
+      const statusText = item.txSig ? "✓ Done" : "✗ Failed";
+      const txDisplay = item.txSig
+        ? `<a href="https://solscan.io/tx/${item.txSig}?cluster=devnet" style="color:#00D97E;font-family:monospace;font-size:11px;">${truncateSig(item.txSig)}</a>`
+        : `<span style="color:#E05252;font-size:12px;">${item.error || "Failed"}</span>`;
+      return `<tr>
+        <td style="padding:10px 16px;font-size:13px;color:#C0C0CC;background:${bg};">${item.name}</td>
+        <td style="padding:10px 16px;font-size:13px;color:#00D97E;background:${bg};font-weight:700;">$${formatAmount(item.amountUsd)}</td>
+        <td style="padding:10px 16px;font-size:12px;color:${statusColor};background:${bg};">${statusText}</td>
+        <td style="padding:10px 16px;background:${bg};">${txDisplay}</td>
+      </tr>`;
+    })
+    .join("");
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bulk Payout Complete — $${total} sent</title></head>
+<body style="margin:0;padding:0;background:#0A0A0B;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0A0A0B;padding:40px 16px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#111113;border-radius:12px;border:1px solid #1E1E24;overflow:hidden;">
+
+        <tr><td style="padding:32px 40px 24px;text-align:center;border-bottom:1px solid #1E1E24;">
+          <div style="font-size:24px;font-weight:900;color:#00D97E;letter-spacing:-0.5px;">FlashPay</div>
+        </td></tr>
+
+        <tr><td style="padding:40px 40px 32px;">
+          <h1 style="margin:0 0 8px;font-size:26px;font-weight:800;color:#00D97E;text-align:center;">Bulk Payout Complete ✓</h1>
+          <p style="margin:0 0 8px;font-size:14px;color:#8A8A96;text-align:center;">$${total} USDC sent to ${items.length} contractor${items.length !== 1 ? "s" : ""}</p>
+          <p style="margin:0 0 32px;font-size:12px;color:#3A3A50;text-align:center;">${now}</p>
+
+          <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:8px;overflow:hidden;border:1px solid #1E1E24;margin-bottom:24px;">
+            <tr>
+              <th style="padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#5A5A6A;background:#0D0D0F;text-align:left;font-weight:600;">Contractor</th>
+              <th style="padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#5A5A6A;background:#0D0D0F;text-align:left;font-weight:600;">Amount</th>
+              <th style="padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#5A5A6A;background:#0D0D0F;text-align:left;font-weight:600;">Status</th>
+              <th style="padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#5A5A6A;background:#0D0D0F;text-align:left;font-weight:600;">Tx Hash</th>
+            </tr>
+            ${rows}
+          </table>
+
+          <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:8px;border:1px solid #1E1E24;">
+            <tr>
+              <td style="padding:14px 20px;font-size:14px;color:#8A8A96;background:#111113;">Total Sent</td>
+              <td style="padding:14px 20px;font-size:16px;color:#00D97E;background:#111113;font-weight:800;text-align:right;">$${total} USDC</td>
+            </tr>
+            ${doneCount > 0 ? `<tr>
+              <td style="padding:10px 20px;font-size:13px;color:#8A8A96;background:#161618;">Successful</td>
+              <td style="padding:10px 20px;font-size:13px;color:#00D97E;background:#161618;text-align:right;">${doneCount} of ${items.length}</td>
+            </tr>` : ""}
+            ${failedCount > 0 ? `<tr>
+              <td style="padding:10px 20px;font-size:13px;color:#8A8A96;background:#111113;">Failed</td>
+              <td style="padding:10px 20px;font-size:13px;color:#E05252;background:#111113;text-align:right;">${failedCount} of ${items.length}</td>
+            </tr>` : ""}
+          </table>
+        </td></tr>
+
+        <tr><td style="padding:20px 40px;border-top:1px solid #1E1E24;text-align:center;">
+          <p style="margin:0;font-size:11px;color:#3A3A50;">Powered by FlashPay · Built on Solana · Payments by Dodo Payments</p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+export async function sendBulkPayoutSummaryEmail(params: BulkPayoutSummaryParams): Promise<void> {
+  const { founderEmail, items, totalAmountUsd } = params;
+  const total = formatAmount(totalAmountUsd);
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: founderEmail,
+      subject: `✓ Bulk payout complete — $${total} sent to ${items.length} contractor${items.length !== 1 ? "s" : ""}`,
+      html: bulkSummaryEmailHtml(params),
+    });
+  } catch (err) {
+    console.error("[sendBulkPayoutSummaryEmail] Failed:", err);
+  }
+}
+
 export async function sendPayoutEmails(params: PayoutEmailParams): Promise<void> {
   const { contractorName, contractorEmail, founderEmail, amountUsd } = params;
   const amt = formatAmount(amountUsd);

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Webhook } from "standardwebhooks";
 import { createServiceClient } from "@/lib/supabase/server";
 import { sendUsdc } from "@/lib/solana";
-import { sendPayoutEmails } from "@/lib/emails";
+import { sendPayoutEmails, sendBulkPayoutSummaryEmail } from "@/lib/emails";
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -26,16 +26,129 @@ export async function POST(request: NextRequest) {
 
   const payment = event.data;
   const metadata = payment.metadata || {};
+  const paymentId = payment.payment_id;
+  const ownerId = metadata.owner_id;
+
+  const supabase = createServiceClient();
+
+  // ── Bulk payout flow ─────────────────────────────────────────────────────
+  if (metadata.is_bulk === "true") {
+    const bulkPayoutId = metadata.bulk_payout_id;
+
+    if (!bulkPayoutId || !paymentId) {
+      return NextResponse.json({ error: "Missing bulk metadata" }, { status: 400 });
+    }
+
+    // Idempotency: skip if already processed
+    const { data: existingBulk } = await supabase
+      .from("bulk_payouts")
+      .select("id, status")
+      .eq("id", bulkPayoutId)
+      .single();
+
+    if (existingBulk?.status === "done") {
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+
+    await supabase
+      .from("bulk_payouts")
+      .update({ dodo_payment_id: paymentId, status: "processing" })
+      .eq("id", bulkPayoutId);
+
+    const { data: items } = await supabase
+      .from("bulk_payout_items")
+      .select("id, contractor_id, amount_usd, contractors(name, email, solana_wallet)")
+      .eq("bulk_payout_id", bulkPayoutId);
+
+    if (!items || items.length === 0) {
+      await supabase.from("bulk_payouts").update({ status: "failed" }).eq("id", bulkPayoutId);
+      return NextResponse.json({ error: "No items found" }, { status: 400 });
+    }
+
+    // Process each item
+    const txResults: Array<{ name: string; amountUsd: number; txSig: string | null; error?: string }> = [];
+
+    for (const item of items) {
+      const rawContractor = item.contractors;
+      const contractor = (Array.isArray(rawContractor) ? rawContractor[0] : rawContractor) as { name: string; email: string | null; solana_wallet: string } | null;
+
+      if (!contractor) {
+        await supabase
+          .from("bulk_payout_items")
+          .update({ status: "failed", error_message: "Contractor not found" })
+          .eq("id", item.id);
+        txResults.push({ name: "Unknown", amountUsd: Number(item.amount_usd), txSig: null, error: "Contractor not found" });
+        continue;
+      }
+
+      try {
+        const txSig = await sendUsdc(contractor.solana_wallet, Number(item.amount_usd));
+
+        await supabase.from("bulk_payout_items").update({ status: "done", solana_tx_sig: txSig }).eq("id", item.id);
+
+        await supabase.from("payouts").insert({
+          contractor_id: item.contractor_id,
+          amount_usd: item.amount_usd,
+          dodo_payment_id: `${paymentId}_${item.id}`,
+          bulk_payout_id: bulkPayoutId,
+          status: "done",
+          solana_tx_sig: txSig,
+        });
+
+        txResults.push({ name: contractor.name, amountUsd: Number(item.amount_usd), txSig });
+
+        // Fire-and-forget per-contractor email
+        if (contractor.email) {
+          sendPayoutEmails({
+            contractorName: contractor.name,
+            contractorEmail: contractor.email,
+            founderEmail: payment.customer?.email || "",
+            amountUsd: Number(item.amount_usd),
+            solanaSignature: txSig,
+            cluster: "devnet",
+          }).catch(() => {});
+        }
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        await supabase
+          .from("bulk_payout_items")
+          .update({ status: "failed", error_message: message })
+          .eq("id", item.id);
+        txResults.push({ name: contractor.name, amountUsd: Number(item.amount_usd), txSig: null, error: message });
+      }
+    }
+
+    await supabase.from("bulk_payouts").update({ status: "done" }).eq("id", bulkPayoutId);
+
+    // Summary email to founder
+    let founderEmail = payment.customer?.email as string | undefined;
+    if (!founderEmail && ownerId) {
+      const { data: user } = await supabase.auth.admin.getUserById(ownerId);
+      founderEmail = user?.user?.email;
+    }
+
+    if (founderEmail) {
+      sendBulkPayoutSummaryEmail({
+        founderEmail,
+        items: txResults,
+        totalAmountUsd: txResults.reduce((s, r) => s + r.amountUsd, 0),
+      })
+        .then(async () => {
+          await supabase.from("bulk_payouts").update({ emails_sent: true }).eq("id", bulkPayoutId);
+        })
+        .catch(() => {});
+    }
+
+    return NextResponse.json({ received: true });
+  }
+
+  // ── Single payout flow (unchanged) ───────────────────────────────────────
   const contractorId = metadata.contractor_id;
   const amountUsd = parseFloat(metadata.amount_usd);
-  const ownerId = metadata.owner_id;
-  const paymentId = payment.payment_id;
 
   if (!contractorId || !amountUsd || !paymentId) {
     return NextResponse.json({ error: "Missing metadata" }, { status: 400 });
   }
-
-  const supabase = createServiceClient();
 
   const { data: existing } = await supabase
     .from("payouts")
@@ -94,11 +207,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true });
   }
 
-  // Send confirmation emails — fire and forget, never blocks the response
   if (txSig) {
     let founderEmail = payment.customer?.email as string | undefined;
 
-    // Fall back to looking up by owner_id if not in payment object
     if (!founderEmail && ownerId) {
       const { data: user } = await supabase.auth.admin.getUserById(ownerId);
       founderEmail = user?.user?.email;

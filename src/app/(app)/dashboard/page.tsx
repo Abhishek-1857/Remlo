@@ -14,6 +14,7 @@ interface Payout {
   status: string;
   solana_tx_sig: string | null;
   dodo_payment_id: string | null;
+  bulk_payout_id: string | null;
   created_at: string;
   contractor_id: string;
   contractors: {
@@ -53,8 +54,11 @@ function DashboardContent() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (searchParams.get("payout") === "success") {
+    const payout = searchParams.get("payout");
+    if (payout === "success") {
       toast("Payment initiated! Waiting for confirmation...", "success");
+    } else if (payout === "bulk") {
+      toast("Bulk payout initiated! Sending USDC to all contractors...", "success");
     }
   }, [searchParams, toast]);
 
@@ -294,7 +298,14 @@ function DashboardContent() {
                             >
                               <span className="text-[10px] font-bold" style={{ color: "var(--bg-base)" }}>{initials}</span>
                             </div>
-                            <span className="font-medium text-[var(--text-primary)]">{name || "—"}</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-medium text-[var(--text-primary)]">{name || "—"}</span>
+                              {p.bulk_payout_id && (
+                                <span className="text-[9px] font-bold uppercase tracking-[0.08em] px-1.5 py-0.5 rounded" style={{ background: "rgba(0,217,126,0.12)", color: "var(--green)", border: "1px solid rgba(0,217,126,0.2)" }}>
+                                  BULK
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </td>
                         <td className="px-5 py-3.5">
