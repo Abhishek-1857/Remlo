@@ -170,45 +170,46 @@ function DashboardContent() {
   }, {});
   const donutData = Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
   const donutColors: Record<string, string> = { done: "#00D97E", pending: "#F59E0B", failed: "#EF4444", processing: "#6366F1" };
+  const doneCount = statusCounts["done"] || 0;
+  const totalPayouts = payouts.length;
+  const donePct = totalPayouts > 0 ? Math.round((doneCount / totalPayouts) * 100) : 0;
 
   return (
     <div className="animate-fade-in relative z-[1]">
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5 stagger-children">
         {/* Total Paid Out */}
-        <div className="card p-5">
+        <div className="card p-6 min-h-[120px] flex flex-col justify-between relative overflow-hidden">
           <div className="flex items-start justify-between mb-3">
-            <span className="text-[11px] tracking-[0.08em] uppercase text-[var(--text-muted)] font-medium">
-              Total Paid Out
-            </span>
+            <span className="text-[11px] tracking-[0.08em] uppercase text-[var(--text-muted)] font-medium">Total Paid Out</span>
             <div className="w-7 h-7 rounded-lg bg-[var(--green-dim)] flex items-center justify-center">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" />
               </svg>
             </div>
           </div>
-          <p className="text-[32px] font-mono-data font-semibold text-[var(--green)] leading-none">
+          <p className="text-[32px] font-mono-data font-semibold text-[var(--green)] leading-none glow-green">
             ${totalPaid.toFixed(2)}
           </p>
-          <div className="flex items-center justify-between mt-2">
+          <div className="flex items-center justify-between mt-3">
             <p className="text-[10px] text-[var(--text-muted)]">all time</p>
             {paidTrendPct !== null && (
-              <span className="flex items-center gap-0.5 text-[11px] font-mono-data text-[var(--green)]">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <span className="trend-pill">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" />
                 </svg>
                 {paidTrendPct > 0 ? "+" : ""}{paidTrendPct}%
               </span>
             )}
           </div>
+          {/* Gradient bottom accent */}
+          <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ background: 'linear-gradient(90deg, #00D97E, transparent)' }} />
         </div>
 
         {/* Active Contractors */}
-        <div className="card p-5">
+        <div className="card p-6 min-h-[120px] flex flex-col justify-between">
           <div className="flex items-start justify-between mb-3">
-            <span className="text-[11px] tracking-[0.08em] uppercase text-[var(--text-muted)] font-medium">
-              Active Contractors
-            </span>
+            <span className="text-[11px] tracking-[0.08em] uppercase text-[var(--text-muted)] font-medium">Active Contractors</span>
             <div className="w-7 h-7 rounded-lg bg-[var(--green-dim)] flex items-center justify-center">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
@@ -216,14 +217,12 @@ function DashboardContent() {
               </svg>
             </div>
           </div>
-          <p className="text-[32px] font-mono-data font-semibold text-[var(--text-primary)] leading-none">
-            {contractorCount}
-          </p>
-          <div className="flex items-center justify-between mt-2">
+          <p className="text-[32px] font-mono-data font-semibold text-[var(--text-primary)] leading-none">{contractorCount}</p>
+          <div className="flex items-center justify-between mt-3">
             <p className="text-[10px] text-[var(--text-muted)]">registered wallets</p>
             {newContractorsThisWeek > 0 && (
-              <span className="flex items-center gap-0.5 text-[11px] font-mono-data text-[var(--green)]">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <span className="trend-pill">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" />
                 </svg>
                 +{newContractorsThisWeek} this week
@@ -233,11 +232,9 @@ function DashboardContent() {
         </div>
 
         {/* This Month */}
-        <div className="card p-5">
+        <div className="card p-6 min-h-[120px] flex flex-col justify-between">
           <div className="flex items-start justify-between mb-3">
-            <span className="text-[11px] tracking-[0.08em] uppercase text-[var(--text-muted)] font-medium">
-              This Month
-            </span>
+            <span className="text-[11px] tracking-[0.08em] uppercase text-[var(--text-muted)] font-medium">This Month</span>
             <div className="w-7 h-7 rounded-lg bg-[var(--green-dim)] flex items-center justify-center">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" />
@@ -245,13 +242,11 @@ function DashboardContent() {
               </svg>
             </div>
           </div>
-          <p className="text-[32px] font-mono-data font-semibold text-[var(--text-primary)] leading-none">
-            {thisMonth}
-          </p>
-          <div className="flex items-center justify-between mt-2">
+          <p className="text-[32px] font-mono-data font-semibold text-[var(--text-primary)] leading-none">{thisMonth}</p>
+          <div className="flex items-center justify-between mt-3">
             <p className="text-[10px] text-[var(--text-muted)]">payouts</p>
-            <span className={`flex items-center gap-0.5 text-[11px] font-mono-data ${monthDiff >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <span className={`trend-pill ${monthDiff < 0 ? "trend-pill-red" : ""}`}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 {monthDiff >= 0
                   ? <><line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" /></>
                   : <><line x1="12" y1="5" x2="12" y2="19" /><polyline points="19 12 12 19 5 12" /></>
@@ -274,28 +269,29 @@ function DashboardContent() {
             <AreaChart data={dailyData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="greenGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#00D97E" stopOpacity={0.25} />
-                  <stop offset="95%" stopColor="#00D97E" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#00D97E" stopOpacity={0.4} />
+                  <stop offset="100%" stopColor="#00D97E" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#1A1A22" vertical={false} />
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 10, fill: "var(--text-muted)" }}
+                tick={{ fontSize: 11, fill: "#3A3A50", fontFamily: "JetBrains Mono, monospace" }}
                 tickLine={false}
                 axisLine={false}
                 interval={6}
               />
               <YAxis
-                tick={{ fontSize: 10, fill: "var(--text-muted)" }}
+                tick={{ fontSize: 11, fill: "#3A3A50", fontFamily: "JetBrains Mono, monospace" }}
                 tickLine={false}
                 axisLine={false}
                 tickFormatter={(v) => `$${v}`}
               />
               <Tooltip
-                contentStyle={{ background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px", color: "var(--text-primary)" }}
-                cursor={{ stroke: "var(--green)", strokeWidth: 1, strokeDasharray: "4 2" }}
+                contentStyle={{ background: "var(--bg-elevated)", border: "1px solid rgba(0,217,126,0.2)", borderRadius: "8px", fontSize: "12px", color: "var(--text-primary)", fontFamily: "JetBrains Mono, monospace" }}
+                cursor={{ stroke: "#00D97E", strokeWidth: 1, strokeDasharray: "4 2" }}
                 formatter={(v) => [`$${Number(v).toFixed(2)}`, "Paid out"]}
+                labelStyle={{ color: "#5E6D8C", marginBottom: 4 }}
               />
               <Area type="monotone" dataKey="amount" stroke="#00D97E" strokeWidth={2} fill="url(#greenGrad)" dot={false} activeDot={{ r: 4, fill: "#00D97E", strokeWidth: 0 }} />
             </AreaChart>
@@ -310,20 +306,29 @@ function DashboardContent() {
           {donutData.length === 0 ? (
             <div className="flex-1 flex items-center justify-center text-xs text-[var(--text-muted)]">No data yet</div>
           ) : (
-            <ResponsiveContainer width="100%" height={180}>
-              <PieChart>
-                <Pie data={donutData} cx="50%" cy="45%" innerRadius={48} outerRadius={68} paddingAngle={3} dataKey="value" strokeWidth={0}>
-                  {donutData.map((entry) => (
-                    <Cell key={entry.name} fill={donutColors[entry.name] || "#6366F1"} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{ background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px", color: "var(--text-primary)" }}
-                  formatter={(v, name) => [v, String(name).charAt(0).toUpperCase() + String(name).slice(1)]}
-                />
-                <Legend iconType="circle" iconSize={8} formatter={(v) => <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{v.charAt(0).toUpperCase() + v.slice(1)}</span>} />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="relative">
+              <ResponsiveContainer width="100%" height={180}>
+                <PieChart>
+                  <Pie data={donutData} cx="50%" cy="45%" innerRadius={44} outerRadius={70} paddingAngle={3} dataKey="value" strokeWidth={0}>
+                    {donutData.map((entry) => (
+                      <Cell key={entry.name} fill={donutColors[entry.name] || "#6366F1"} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ background: "var(--bg-elevated)", border: "1px solid rgba(0,217,126,0.2)", borderRadius: "8px", fontSize: "12px", color: "var(--text-primary)" }}
+                    formatter={(v, name) => [v, String(name).charAt(0).toUpperCase() + String(name).slice(1)]}
+                  />
+                  <Legend iconType="circle" iconSize={8} formatter={(v) => <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{v.charAt(0).toUpperCase() + v.slice(1)}</span>} />
+                </PieChart>
+              </ResponsiveContainer>
+              {/* Center label */}
+              <div className="absolute pointer-events-none" style={{ top: 0, left: 0, right: 0, height: 162, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div className="text-center">
+                  <div className="font-mono-data font-bold text-[18px] glow-green" style={{ color: '#00D97E', lineHeight: 1 }}>{donePct}%</div>
+                  <div className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Done</div>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -420,7 +425,20 @@ function DashboardContent() {
                         </td>
                         <td className="px-5 py-3.5">
                           {p.solana_tx_sig ? (
-                            <TxHash hash={p.solana_tx_sig} />
+                            <a
+                              href={`https://solscan.io/tx/${p.solana_tx_sig}?cluster=devnet`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="group/tx flex items-center gap-1"
+                              style={{ color: '#3A3A50' }}
+                              onMouseEnter={(e) => (e.currentTarget.style.color = '#00D97E')}
+                              onMouseLeave={(e) => (e.currentTarget.style.color = '#3A3A50')}
+                            >
+                              <TxHash hash={p.solana_tx_sig} />
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-0 group-hover/tx:opacity-100 transition-opacity flex-shrink-0">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+                              </svg>
+                            </a>
                           ) : (
                             <span className="text-[var(--text-muted)]">—</span>
                           )}

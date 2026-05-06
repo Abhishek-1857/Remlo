@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
 import { TestBadge } from "@/components/test-banner";
 import { ToastProvider } from "@/components/toast";
+import { createClient } from "@/lib/supabase/browser";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -17,6 +18,15 @@ const pageTitles: Record<string, string> = {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      setUserEmail(data.user?.email ?? null);
+    });
+  }, []);
+
   const title =
     Object.entries(pageTitles).find(([path]) =>
       pathname.startsWith(path)
@@ -33,7 +43,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <h1 className="font-heading font-semibold text-xl text-[var(--text-primary)]">
             {title}
           </h1>
-          <TestBadge />
+          <div className="flex items-center gap-3">
+            {userEmail && (
+              <span className="text-[11px] text-[var(--text-muted)] font-mono-data hidden sm:block truncate max-w-[180px]">{userEmail}</span>
+            )}
+            <TestBadge />
+          </div>
         </header>
         <main className="p-8">{children}</main>
       </div>

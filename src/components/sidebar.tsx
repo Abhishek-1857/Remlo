@@ -84,6 +84,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       className="fixed left-0 top-0 bottom-0 bg-[var(--bg-surface)] border-r border-[var(--border)] flex flex-col z-40 transition-[width] duration-300 overflow-hidden"
       style={{ width: collapsed ? "64px" : "200px" }}
     >
+      {/* Gradient top accent line */}
+      <div className="absolute top-0 left-0 right-0 h-[2px] z-10" style={{ background: 'linear-gradient(90deg, #00D97E 0%, rgba(0,217,126,0.3) 60%, transparent 100%)' }} />
       {/* Logo */}
       <div className="flex items-center border-b border-[var(--border)] h-14 flex-shrink-0 px-3">
         <Link href="/dashboard" className="flex items-center gap-2.5 flex-shrink-0">
@@ -127,7 +129,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               }`}
             >
               {isActive && !collapsed && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r bg-[var(--green)]" />
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r bg-[var(--green)]" style={{ boxShadow: '2px 0 8px rgba(0,217,126,0.5)' }} />
               )}
               {item.icon}
               {!collapsed && <span className="font-medium whitespace-nowrap">{item.label}</span>}

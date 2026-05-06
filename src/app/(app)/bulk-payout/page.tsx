@@ -204,7 +204,7 @@ export default function BulkPayoutPage() {
                 return (
                   <tr
                     key={c.id}
-                    className={`table-row transition-colors ${isChecked ? "bg-[var(--green-dim)]" : ""}`}
+                    className={`table-row transition-colors ${isChecked ? "row-checked" : ""}`}
                   >
                     <td className="px-5 py-3.5">
                       <input
@@ -248,7 +248,8 @@ export default function BulkPayoutPage() {
                             value={amount}
                             onChange={(e) => setAmount(c.id, e.target.value)}
                             placeholder="0.00"
-                            className="pl-6 pr-3 py-2 text-sm font-mono-data input-base w-full"
+                            className="pl-6 pr-3 py-2 text-sm font-mono-data input-base w-full text-right"
+                            style={{ background: '#0E0E12' }}
                             onClick={(e) => e.stopPropagation()}
                             autoFocus={amount === ""}
                           />
@@ -268,26 +269,25 @@ export default function BulkPayoutPage() {
       {/* Sticky bottom bar */}
       {selected.size > 0 && (
         <div
-          className="fixed bottom-0 left-[200px] right-0 border-t border-[var(--border)] z-50"
-          style={{ background: "var(--bg-surface)" }}
+          className="fixed bottom-0 left-[200px] right-0 z-50"
+          style={{ background: "var(--bg-surface)", borderTop: "2px solid rgba(0,217,126,0.3)", boxShadow: "0 -8px 32px rgba(0,0,0,0.4)" }}
         >
-          <div className="flex items-center justify-between px-6 py-4">
+          <div className="flex items-center justify-between px-6" style={{ height: 64 }}>
             <div className="flex items-center gap-6">
               <div>
-                <p className="text-xs text-[var(--text-muted)] uppercase tracking-[0.08em] font-medium">
-                  Selected
-                </p>
-                <p className="font-mono-data font-semibold text-[var(--text-primary)]">
+                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-[0.08em] font-medium">Selected</p>
+                <p className="font-mono-data font-semibold" style={{ color: 'var(--green)' }}>
                   {selected.size} contractor{selected.size !== 1 ? "s" : ""}
                 </p>
               </div>
               <div className="w-px h-8 bg-[var(--border)]" />
               <div>
-                <p className="text-xs text-[var(--text-muted)] uppercase tracking-[0.08em] font-medium">
-                  Total
+                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-[0.08em] font-medium">Total</p>
+                <p className="font-mono-data font-bold text-[20px] leading-tight glow-green" style={{ color: 'var(--green)' }}>
+                  ${totalUsd.toFixed(2)} <span className="text-sm font-normal text-[var(--text-muted)]">USDC</span>
                 </p>
-                <p className="font-mono-data font-semibold text-[var(--green)]">
-                  ${totalUsd.toFixed(2)}
+                <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                  ≈ {selected.size} Solana transfer{selected.size !== 1 ? "s" : ""} · ~${(selected.size * 0.001).toFixed(3)} total network fee
                 </p>
               </div>
               {hasEmptyAmounts && (
@@ -303,9 +303,10 @@ export default function BulkPayoutPage() {
             <button
               onClick={handleProceed}
               disabled={!canProceed}
-              className="btn-primary px-6 py-2.5 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+              className="btn-primary px-6 py-3 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+              style={canProceed ? { boxShadow: '0 0 20px rgba(0,217,126,0.35)' } : {}}
             >
-              Proceed to Payment →
+              Pay All Now ⚡
             </button>
           </div>
         </div>
