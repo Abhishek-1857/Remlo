@@ -47,6 +47,7 @@ function DashboardContent() {
   const [contractors, setContractors] = useState<Contractor[]>([]);
   const [loading, setLoading] = useState(true);
   const [retrying, setRetrying] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
   const [selectedContractor, setSelectedContractor] = useState("");
   const [quickAmount, setQuickAmount] = useState("");
   const [quickPaying, setQuickPaying] = useState(false);
@@ -76,6 +77,31 @@ function DashboardContent() {
   async function fetchContractors() {
     const res = await fetch("/api/contractors");
     if (res.ok) setContractors(await res.json());
+  }
+
+  async function handleExportCSV() {
+    setExporting(true);
+    const res = await fetch("/api/payouts/export");
+    if (res.status === 404) {
+      toast("No payouts to export yet", "error");
+      setExporting(false);
+      return;
+    }
+    if (!res.ok) {
+      toast("Export failed", "error");
+      setExporting(false);
+      return;
+    }
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `flashpay-payouts-${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    setExporting(false);
   }
 
   async function handleRetry(payoutId: string) {
@@ -249,12 +275,33 @@ function DashboardContent() {
               </h2>
               <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Latest transactions on Solana</p>
             </div>
-            <Link href="/contractors" className="text-xs text-[var(--green)] hover:underline flex items-center gap-1">
-              View all
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
-              </svg>
-            </Link>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleExportCSV}
+                disabled={exporting}
+                className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md font-medium transition-colors disabled:opacity-50"
+                style={{ border: "1px solid var(--border-bright)", color: "var(--text-muted)", background: "transparent" }}
+                onMouseEnter={(e) => { if (!exporting) { (e.currentTarget as HTMLElement).style.color = "var(--green)"; (e.currentTarget as HTMLElement).style.borderColor = "var(--green)"; } }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-muted)"; (e.currentTarget as HTMLElement).style.borderColor = "var(--border-bright)"; }}
+              >
+                {exporting ? (
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                  </svg>
+                ) : (
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                )}
+                {exporting ? "Exporting..." : "Export CSV"}
+              </button>
+              <Link href="/contractors" className="text-xs text-[var(--green)] hover:underline flex items-center gap-1">
+                View all
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+                </svg>
+              </Link>
+            </div>
           </div>
 
           {loading ? (
