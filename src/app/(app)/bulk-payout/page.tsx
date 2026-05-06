@@ -31,7 +31,6 @@ export default function BulkPayoutPage() {
   const [confirming, setConfirming] = useState(false);
   const [paying, setPaying] = useState(false);
   const [search, setSearch] = useState("");
-  const [exportingCSV, setExportingCSV] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -105,31 +104,6 @@ export default function BulkPayoutPage() {
 
   const canProceed = selected.size > 0 && !hasEmptyAmounts;
 
-  async function handleExportBulkCSV() {
-    setExportingCSV(true);
-    const res = await fetch("/api/bulk-payouts/export");
-    if (res.status === 404) {
-      toast("No bulk payouts to export yet", "error");
-      setExportingCSV(false);
-      return;
-    }
-    if (!res.ok) {
-      toast("Export failed", "error");
-      setExportingCSV(false);
-      return;
-    }
-    const blob = await res.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `flashpay-bulk-payouts-${new Date().toISOString().split("T")[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-    setExportingCSV(false);
-  }
-
   const handleProceed = useCallback(() => {
     if (!canProceed) {
       toast("Enter an amount for each selected contractor", "error");
@@ -170,32 +144,11 @@ export default function BulkPayoutPage() {
   return (
     <div className="animate-fade-in relative z-[1]">
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className="font-heading font-bold text-xl text-[var(--text-primary)]">Bulk Payout</h1>
-          <p className="text-sm text-[var(--text-muted)] mt-1">
-            Select contractors, enter amounts, pay once — USDC lands in each wallet automatically.
-          </p>
-        </div>
-        <button
-          onClick={handleExportBulkCSV}
-          disabled={exportingCSV}
-          className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md font-medium transition-colors disabled:opacity-50 flex-shrink-0"
-          style={{ border: "1px solid var(--border-bright)", color: "var(--text-muted)", background: "transparent" }}
-          onMouseEnter={(e) => { if (!exportingCSV) { (e.currentTarget as HTMLElement).style.color = "var(--green)"; (e.currentTarget as HTMLElement).style.borderColor = "var(--green)"; } }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-muted)"; (e.currentTarget as HTMLElement).style.borderColor = "var(--border-bright)"; }}
-        >
-          {exportingCSV ? (
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
-              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-            </svg>
-          ) : (
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-          )}
-          {exportingCSV ? "Exporting..." : "Export Bulk CSV"}
-        </button>
+      <div className="mb-6">
+        <h1 className="font-heading font-bold text-xl text-[var(--text-primary)]">Bulk Payout</h1>
+        <p className="text-sm text-[var(--text-muted)] mt-1">
+          Select contractors, enter amounts, pay once — USDC lands in each wallet automatically.
+        </p>
       </div>
 
       {/* Search */}
