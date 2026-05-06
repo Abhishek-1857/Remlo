@@ -182,14 +182,7 @@ export default function PayoutsPage() {
                           >
                             <span className="text-[10px] font-bold" style={{ color: "var(--bg-base)" }}>{initials}</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-[var(--text-primary)]">{name}</span>
-                            {p.bulk_payout_id && (
-                              <span className="text-[9px] font-bold uppercase tracking-[0.08em] px-1.5 py-0.5 rounded" style={{ background: 'rgba(99,143,255,0.12)', color: 'var(--blue)', border: '1px solid rgba(99,143,255,0.2)' }}>
-                                BULK
-                              </span>
-                            )}
-                          </div>
+                          <span className="font-medium text-[var(--text-primary)]">{name}</span>
                         </div>
                       </td>
                       <td className="px-5 py-3.5 font-mono-data text-[var(--green)]">
