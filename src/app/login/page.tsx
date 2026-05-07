@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/browser";
 import { RemloLogo, RemloWordmark } from "@/components/logo";
 
@@ -32,6 +32,19 @@ export default function LoginPage() {
   const [mounted, setMounted] = useState(false);
   const [latestPayout, setLatestPayout] = useState<LatestPayout | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [user, setUser] = useState<{ email?: string } | null>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onOutsideClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onOutsideClick);
+    return () => document.removeEventListener("mousedown", onOutsideClick);
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -41,10 +54,13 @@ export default function LoginPage() {
       .catch(() => {});
 
     const supabase = createClient();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN") {
+        setUser(session?.user ?? null);
         window.location.href = "/dashboard";
       }
+      if (event === "SIGNED_OUT") setUser(null);
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -107,12 +123,123 @@ export default function LoginPage() {
             <a href="#features" className="hover:text-white transition-colors">Features</a>
             <a href="#how-it-works" className="hover:text-white transition-colors">How it works</a>
             <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
-            <a href="#login" className="hover:text-white transition-colors">Sign in</a>
+            {user
+              ? <a href="/dashboard" className="hover:text-white transition-colors">Dashboard</a>
+              : <a href="#login" className="hover:text-white transition-colors">Sign in</a>
+            }
           </div>
-          <a href="#login" className="px-4 py-2 text-sm glass rounded-lg border-[var(--border)] hover:border-[var(--border-bright)] transition-colors flex items-center gap-1 text-[var(--text-secondary)] hover:text-white">
-            Sign in
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
-          </a>
+
+          {/* Right: Sign In pill or User dropdown */}
+          {user ? (
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setDropdownOpen((o) => !o)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all"
+                style={{ background: 'rgba(0,217,126,0.1)', border: '1px solid rgba(0,217,126,0.3)', color: 'var(--green)' }}
+              >
+                <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0" style={{ background: 'var(--green)', color: '#0B0F19' }}>
+                  {(user.email?.[0] ?? "?").toUpperCase()}
+                </span>
+                <span className="hidden sm:block max-w-[140px] truncate text-xs">{user.email}</span>
+                <svg
+                  width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                  className="transition-transform duration-200 flex-shrink-0"
+                  style={{ transform: dropdownOpen ? 'rotate(180deg)' : 'none' }}
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+
+              {dropdownOpen && (
+                <div
+                  className="absolute right-0 top-full mt-2 w-64 rounded-2xl shadow-card overflow-hidden z-50 animate-fade-in"
+                  style={{ background: 'rgba(11,15,25,0.97)', border: '1px solid rgba(0,217,126,0.18)', backdropFilter: 'blur(24px)' }}
+                >
+                  {/* User header */}
+                  <div className="px-4 pt-4 pb-3 border-b border-[rgba(255,255,255,0.06)]">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+                        style={{ background: 'linear-gradient(135deg, var(--green-light), var(--green))', color: '#0B0F19' }}
+                      >
+                        {(user.email?.[0] ?? "?").toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-white truncate">{user.email}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="w-1.5 h-1.5 rounded-full animate-pulse-slow" style={{ background: '#00D97E' }} />
+                          <span className="text-[10px] font-mono-data" style={{ color: '#00D97E' }}>Active · Devnet</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="p-2">
+                    <a
+                      href="/dashboard"
+                      className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-sm text-[var(--text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.06)] transition-colors"
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
+                        <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
+                      </svg>
+                      Go to Dashboard
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto opacity-50">
+                        <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+                      </svg>
+                    </a>
+                    <a
+                      href="/payouts"
+                      className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-sm text-[var(--text-secondary)] hover:text-white hover:bg-[rgba(255,255,255,0.06)] transition-colors"
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" />
+                      </svg>
+                      Payouts
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto opacity-50">
+                        <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+                      </svg>
+                    </a>
+                    <div className="h-px mx-2 my-1.5" style={{ background: 'rgba(255,255,255,0.06)' }} />
+                    <button
+                      onClick={async () => {
+                        const supabase = createClient();
+                        await supabase.auth.signOut();
+                        setUser(null);
+                        setDropdownOpen(false);
+                      }}
+                      className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-sm transition-colors"
+                      style={{ color: 'var(--red)' }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--red-dim)'; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+                      </svg>
+                      Sign out
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <a
+              href="#login"
+              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all"
+              style={{ border: '1px solid rgba(0,217,126,0.4)', color: 'var(--green)', background: 'rgba(0,217,126,0.06)' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(0,217,126,0.14)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(0,217,126,0.06)'; }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="8" r="4" /><path d="M4 20a8 8 0 0 1 16 0" />
+              </svg>
+              Sign In
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </a>
+          )}
         </div>
       </nav>
 
