@@ -54,6 +54,7 @@ function DashboardContent() {
   const [contractors, setContractors] = useState<{ id: string; name: string; created_at: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [retrying, setRetrying] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null);
   const [walletLoading, setWalletLoading] = useState(false);
@@ -140,6 +141,19 @@ function DashboardContent() {
       toast(data.error || "Retry failed", "error");
     }
     setRetrying(null);
+    fetchPayouts();
+  }
+
+  async function handleCancel(payoutId: string) {
+    setCancelling(payoutId);
+    const res = await fetch(`/api/payout/${payoutId}/cancel`, { method: "POST" });
+    if (res.ok) {
+      toast("Payout cancelled", "success");
+    } else {
+      const data = await res.json();
+      toast(data.error || "Cancel failed", "error");
+    }
+    setCancelling(null);
     fetchPayouts();
   }
 
@@ -666,6 +680,18 @@ function DashboardContent() {
                               className="text-xs text-[var(--amber)] hover:text-[var(--green)] font-medium disabled:opacity-50 transition-colors"
                             >
                               {retrying === p.id ? "Retrying..." : "Retry"}
+                            </button>
+                          )}
+                          {(p.status === "pending" || p.status === "processing") && (
+                            <button
+                              onClick={() => handleCancel(p.id)}
+                              disabled={cancelling === p.id}
+                              className="text-xs font-medium disabled:opacity-50 transition-colors"
+                              style={{ color: "#EF4444" }}
+                              onMouseEnter={(e) => (e.currentTarget.style.color = "#FF7070")}
+                              onMouseLeave={(e) => (e.currentTarget.style.color = "#EF4444")}
+                            >
+                              {cancelling === p.id ? "Cancelling..." : "Cancel"}
                             </button>
                           )}
                         </td>

@@ -28,7 +28,7 @@ export default function PayoutsPage() {
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "processing" | "done" | "failed">("all");
+  const [filter, setFilter] = useState("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [copiedTx, setCopiedTx] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -70,8 +70,9 @@ export default function PayoutsPage() {
     .filter((p) => p.status === "done")
     .reduce((s, p) => s + Number(p.amount_usd), 0);
 
-  const filterOptions: { value: "all" | "processing" | "done" | "failed"; label: string }[] = [
+  const filterOptions: { value: string; label: string }[] = [
     { value: "all", label: "All" },
+    { value: "pending", label: "Pending" },
     { value: "processing", label: "Processing" },
     { value: "done", label: "Confirmed" },
     { value: "failed", label: "Failed" },
