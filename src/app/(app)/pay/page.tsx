@@ -21,7 +21,7 @@ function getInitials(name: string) {
 }
 
 function truncateWallet(w: string) {
-  return `${w.slice(0, 4)}...${w.slice(-4)}`;
+  return `${w.slice(0, 6)}...${w.slice(-6)}`;
 }
 
 export default function SendPaymentPage() {
@@ -54,8 +54,9 @@ export default function SendPaymentPage() {
     (c.email || "").toLowerCase().includes(search.toLowerCase())
   );
 
-  // Reset focused index when filter changes
   useEffect(() => { setFocusedIndex(-1); }, [search]);
+
+  const totalPaidAll = Object.values(totalPaidMap).reduce((s, v) => s + v, 0);
 
   const handleSelect = useCallback((id: string) => {
     router.push(`/pay/${id}`);
@@ -70,17 +71,26 @@ export default function SendPaymentPage() {
       setFocusedIndex((i) => Math.max(i - 1, 0));
     } else if (e.key === "Enter" && focusedIndex >= 0 && filtered[focusedIndex]) {
       handleSelect(filtered[focusedIndex].id);
+    } else if (e.key === "Escape") {
+      setSearch("");
     }
   }, [filtered, focusedIndex, handleSelect]);
 
   return (
     <div className="animate-fade-in relative z-[1] max-w-2xl" onKeyDown={handleKeyDown}>
-      <p className="text-sm text-[var(--text-muted)] mb-6">
+      <p className="text-sm text-[var(--text-muted)] mb-5">
         Choose who you&apos;re paying. You&apos;ll set the amount on the next step.
       </p>
 
+      {/* Quick stats */}
+      {!loading && contractors.length > 0 && (
+        <p className="text-xs text-[var(--text-muted)] mb-4 font-mono-data">
+          {contractors.length} contractor{contractors.length !== 1 ? "s" : ""} · ${totalPaidAll.toFixed(2)} total paid out
+        </p>
+      )}
+
       {/* Search */}
-      <div className="relative mb-6">
+      <div className="relative mb-2">
         <svg
           className="absolute left-3 top-1/2 -translate-y-1/2"
           width="15" height="15" viewBox="0 0 24 24" fill="none"
@@ -90,7 +100,7 @@ export default function SendPaymentPage() {
         </svg>
         <input
           type="text"
-          placeholder="Search contractors..."
+          placeholder="Search by name or email..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full pl-9 pr-9 py-2.5 text-sm input-base search-glow"
@@ -109,11 +119,9 @@ export default function SendPaymentPage() {
       </div>
 
       {/* Keyboard hint */}
-      {filtered.length > 1 && (
-        <p className="text-[10px] text-[var(--text-muted)] mb-3 font-mono-data">
-          ↑↓ to navigate · Enter to select
-        </p>
-      )}
+      <p className="text-[11px] mb-5 font-mono-data" style={{ color: '#3A3A58' }}>
+        ↑↓ navigate · Enter to select · Esc to clear
+      </p>
 
       {/* Contractor list */}
       {loading ? (
@@ -137,62 +145,72 @@ export default function SendPaymentPage() {
           )}
         </div>
       ) : (
-        <div className="space-y-2">
-          {filtered.map((c, idx) => {
-            const initials = getInitials(c.name);
-            const totalPaid = totalPaidMap[c.id] || 0;
-            const isFocused = focusedIndex === idx;
-            return (
-              <button
-                key={c.id}
-                onClick={() => handleSelect(c.id)}
-                onMouseEnter={() => setFocusedIndex(idx)}
-                className="w-full card p-4 flex items-center gap-4 text-left transition-all group relative overflow-hidden"
-                style={isFocused ? { borderColor: 'var(--green-border)', background: 'var(--bg-elevated)' } : {}}
-              >
-                {/* Green left border on focus/hover */}
-                <div
-                  className="absolute left-0 top-0 bottom-0 w-[3px] rounded-r transition-all duration-150"
-                  style={{ background: 'var(--green)', transform: isFocused ? 'scaleY(1)' : 'scaleY(0)', transformOrigin: 'center' }}
-                />
-
-                {/* Avatar */}
-                <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "linear-gradient(135deg, var(--green-light), var(--green))" }}>
-                  <span className="text-sm font-bold" style={{ color: "var(--bg-base)" }}>{initials}</span>
-                </div>
-
-                {/* Name + email */}
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm text-[var(--text-primary)] truncate">{c.name}</p>
-                  <p className="text-xs text-[var(--text-muted)] truncate mt-0.5">
-                    {c.email || truncateWallet(c.solana_wallet)}
-                  </p>
-                </div>
-
-                {/* Total paid as pill */}
-                <div className="flex-shrink-0">
-                  <span
-                    className="font-mono-data text-xs font-semibold px-2.5 py-1 rounded-full"
-                    style={{ background: totalPaid > 0 ? 'rgba(0,217,126,0.1)' : 'var(--bg-elevated)', color: totalPaid > 0 ? 'var(--green)' : 'var(--text-muted)', border: '1px solid', borderColor: totalPaid > 0 ? 'rgba(0,217,126,0.2)' : 'var(--border)' }}
-                  >
-                    ${totalPaid.toFixed(2)}
-                  </span>
-                </div>
-
-                {/* Arrow */}
-                <svg
-                  width="16" height="16" viewBox="0 0 24 24" fill="none"
-                  stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                  className="flex-shrink-0 transition-all"
-                  style={isFocused ? { stroke: 'var(--green)', transform: 'translateX(2px)' } : {}}
+        <>
+          <div className="space-y-2">
+            {filtered.map((c, idx) => {
+              const initials = getInitials(c.name);
+              const totalPaid = totalPaidMap[c.id] || 0;
+              const isFocused = focusedIndex === idx;
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => handleSelect(c.id)}
+                  onMouseEnter={() => setFocusedIndex(idx)}
+                  className="w-full card p-4 flex items-center gap-4 text-left transition-all duration-150"
+                  style={isFocused
+                    ? { borderLeftColor: '#00D97E', borderLeftWidth: '2px', background: 'rgba(0,217,126,0.04)' }
+                    : {}}
                 >
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                  <polyline points="12 5 19 12 12 19" />
-                </svg>
-              </button>
-            );
-          })}
-        </div>
+                  {/* Avatar */}
+                  <div
+                    className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ background: "linear-gradient(135deg, var(--green-light), var(--green))" }}
+                  >
+                    <span className="text-sm font-bold" style={{ color: "var(--bg-base)" }}>{initials}</span>
+                  </div>
+
+                  {/* Name + email + wallet */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-[14px] text-[var(--text-primary)] truncate">{c.name}</p>
+                    {c.email && (
+                      <p className="text-[12px] text-[var(--text-muted)] truncate mt-0.5">{c.email}</p>
+                    )}
+                    <p className="text-[11px] font-mono-data mt-0.5 truncate" style={{ color: '#3A3A58' }}>
+                      {truncateWallet(c.solana_wallet)}
+                    </p>
+                  </div>
+
+                  {/* Total paid + arrow */}
+                  <div className="flex-shrink-0 flex items-center gap-3">
+                    <div className="text-right">
+                      <p className="text-[10px] text-[var(--text-muted)] mb-0.5 uppercase tracking-wide">Total paid</p>
+                      <p
+                        className="font-mono-data text-sm font-semibold"
+                        style={{ color: totalPaid > 0 ? 'var(--green)' : 'var(--text-muted)' }}
+                      >
+                        ${totalPaid.toFixed(2)}
+                      </p>
+                    </div>
+                    <svg
+                      width="16" height="16" viewBox="0 0 24 24" fill="none"
+                      stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                      className="flex-shrink-0 transition-all duration-150"
+                      style={isFocused ? { stroke: 'var(--green)', transform: 'translateX(3px)' } : {}}
+                    >
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                      <polyline points="12 5 19 12 12 19" />
+                    </svg>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Info bar */}
+          <p className="text-[12px] text-center mt-6" style={{ color: 'var(--text-muted)' }}>
+            💡 Select a contractor to set the payout amount. USDC settles on Solana in &lt;2s.
+          </p>
+        </>
       )}
     </div>
   );
