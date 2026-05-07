@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/browser";
 import { RemloLogo, RemloWordmark } from "@/components/logo";
+import { HeroBoltAnimation } from "@/components/hero-bolt-animation";
 
 interface LatestPayout {
   amount_usd: number;
@@ -135,9 +136,9 @@ export default function LoginPage() {
               <button
                 onClick={() => setDropdownOpen((o) => !o)}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all"
-                style={{ background: 'rgba(0,217,126,0.1)', border: '1px solid rgba(0,217,126,0.3)', color: 'var(--green)' }}
+                style={{ background: 'rgba(0,230,160,0.1)', border: '1px solid rgba(0,230,160,0.3)', color: 'var(--green)' }}
               >
-                <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0" style={{ background: 'var(--green)', color: '#0B0F19' }}>
+                <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0" style={{ background: 'var(--green)', color: '#080C14' }}>
                   {(user.email?.[0] ?? "?").toUpperCase()}
                 </span>
                 <span className="hidden sm:block max-w-[140px] truncate text-xs">{user.email}</span>
@@ -153,22 +154,22 @@ export default function LoginPage() {
               {dropdownOpen && (
                 <div
                   className="absolute right-0 top-full mt-2 w-64 rounded-2xl shadow-card overflow-hidden z-50 animate-fade-in"
-                  style={{ background: 'rgba(11,15,25,0.97)', border: '1px solid rgba(0,217,126,0.18)', backdropFilter: 'blur(24px)' }}
+                  style={{ background: 'rgba(11,15,25,0.97)', border: '1px solid rgba(0,230,160,0.18)', backdropFilter: 'blur(24px)' }}
                 >
                   {/* User header */}
                   <div className="px-4 pt-4 pb-3 border-b border-[rgba(255,255,255,0.06)]">
                     <div className="flex items-center gap-3">
                       <div
                         className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-                        style={{ background: 'linear-gradient(135deg, var(--green-light), var(--green))', color: '#0B0F19' }}
+                        style={{ background: 'linear-gradient(135deg, var(--green-light), var(--green))', color: '#080C14' }}
                       >
                         {(user.email?.[0] ?? "?").toUpperCase()}
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-white truncate">{user.email}</p>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="w-1.5 h-1.5 rounded-full animate-pulse-slow" style={{ background: '#00D97E' }} />
-                          <span className="text-[10px] font-mono-data" style={{ color: '#00D97E' }}>Active · Devnet</span>
+                          <span className="w-1.5 h-1.5 rounded-full animate-pulse-slow" style={{ background: '#00E6A0' }} />
+                          <span className="text-[10px] font-mono-data" style={{ color: '#00E6A0' }}>Active · Devnet</span>
                         </div>
                       </div>
                     </div>
@@ -227,9 +228,9 @@ export default function LoginPage() {
             <a
               href="#login"
               className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all"
-              style={{ border: '1px solid rgba(0,217,126,0.4)', color: 'var(--green)', background: 'rgba(0,217,126,0.06)' }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(0,217,126,0.14)'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(0,217,126,0.06)'; }}
+              style={{ border: '1px solid rgba(0,230,160,0.4)', color: 'var(--green)', background: 'rgba(0,230,160,0.06)' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(0,230,160,0.14)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(0,230,160,0.06)'; }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="8" r="4" /><path d="M4 20a8 8 0 0 1 16 0" />
@@ -294,52 +295,16 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Right: Orbit visualization */}
+          {/* Right: Cinematic Bolt Animation */}
           <div className={`relative h-[500px] hidden lg:flex items-center justify-center ${mounted ? 'animate-slide-up' : 'opacity-0'}`} style={{ animationDelay: '200ms' }}>
-            <div className="relative" style={{ width: 0, height: 0 }}>
-              {[180, 280, 380].map((size, i) => (
-                <div
-                  key={size}
-                  className="absolute rounded-full"
-                  style={{
-                    width: size, height: size,
-                    top: -size / 2, left: -size / 2,
-                    border: '1px solid rgba(0,217,126,0.15)',
-                    animation: `ring-opacity 4s ease-in-out ${i * 0.5}s infinite`,
-                  }}
-                />
-              ))}
-              <div className="absolute" style={{ top: -56, left: -56 }}>
-                <RemloLogo size={112} animate />
-              </div>
-              {[
-                { delay: 0, distance: 90, duration: 15, icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="1.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> },
-                { delay: -5, distance: 140, duration: 20, icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> },
-                { delay: -10, distance: 190, duration: 25, icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="1.5"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="9"/></svg> },
-                { delay: -15, distance: 140, duration: 22, icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="1.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> },
-              ].map((item, i) => (
-                <div
-                  key={i}
-                  className="absolute orbit-spinner"
-                  style={{
-                    transformOrigin: `${item.distance + 24}px 24px`,
-                    left: -item.distance - 24, top: -24,
-                    animationDuration: `${item.duration}s`,
-                    animationDelay: `${item.delay}s`,
-                  }}
-                >
-                  <div className="orbit-icon-inner glass shadow-glow" style={{ animationDuration: `${item.duration}s`, animationDelay: `${item.delay}s` }}>
-                    {item.icon}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="absolute top-8 right-0 animate-float-y glass rounded-2xl p-3 shadow-card">
+            <HeroBoltAnimation />
+            {/* Floating payout cards */}
+            <div className="absolute top-8 right-0 animate-float-y glass rounded-2xl p-3 shadow-card z-10">
               <div className="text-[10px] font-mono-data text-[var(--text-muted)]">PAYOUT · SOLANA</div>
               <div className="text-lg font-bold text-[var(--green)]">+{payoutAmt} USDC</div>
               <div className="text-[10px] text-[var(--text-muted)]">to {latestPayout?.wallet_short || "—"} · {"<"}2s</div>
             </div>
-            <div className="absolute bottom-12 left-0 animate-float-y-alt glass rounded-2xl p-3 shadow-card" style={{ animationDelay: '1s' }}>
+            <div className="absolute bottom-12 left-0 animate-float-y-alt glass rounded-2xl p-3 shadow-card z-10" style={{ animationDelay: '1s' }}>
               <div className="text-[10px] font-mono-data text-[var(--text-muted)]">CARD · VISA</div>
               <div className="text-lg font-bold">${payoutAmt}</div>
               <div className="text-[10px] text-[var(--green)] font-medium">Settled instantly</div>
@@ -423,7 +388,7 @@ export default function LoginPage() {
 
           {/* 4-step flow */}
           <div className="relative max-w-5xl mx-auto mb-20 mt-16">
-            <div className="hidden md:block absolute top-12 left-[10%] right-[10%] h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(0,217,126,0.5), transparent)' }} />
+            <div className="hidden md:block absolute top-12 left-[10%] right-[10%] h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(0,230,160,0.5), transparent)' }} />
             <div className="grid md:grid-cols-4 gap-8 relative">
               {[
                 {
@@ -466,7 +431,7 @@ export default function LoginPage() {
                 <tr className="border-b border-[rgba(255,255,255,0.06)]">
                   <th className="px-6 py-4 text-left text-[var(--text-muted)] font-medium text-xs uppercase tracking-wider w-1/3"></th>
                   <th className="px-6 py-4 text-center font-medium text-[var(--text-muted)] text-xs uppercase tracking-wider">Traditional Wire</th>
-                  <th className="px-6 py-4 text-center font-semibold text-sm" style={{ color: 'var(--green)', background: 'rgba(0,217,126,0.05)' }}>
+                  <th className="px-6 py-4 text-center font-semibold text-sm" style={{ color: 'var(--green)', background: 'rgba(0,230,160,0.05)' }}>
                     Remlo ⚡
                   </th>
                 </tr>
@@ -488,7 +453,7 @@ export default function LoginPage() {
                         <span className="text-[var(--text-muted)]">{row.wire}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-3.5 text-center" style={{ background: 'rgba(0,217,126,0.03)' }}>
+                    <td className="px-6 py-3.5 text-center" style={{ background: 'rgba(0,230,160,0.03)' }}>
                       <div className="flex items-center justify-center gap-2">
                         <Check />
                         <span className="text-white font-medium">{row.fp}</span>
@@ -529,11 +494,11 @@ export default function LoginPage() {
             ].map((f) => (
               <div key={f.title} className="feature-card group">
                 <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-[var(--green-dim)] flex items-center justify-center group-hover:bg-[rgba(0,217,126,0.15)] transition-colors text-lg">
+                  <div className="w-12 h-12 rounded-xl bg-[var(--green-dim)] flex items-center justify-center group-hover:bg-[rgba(0,230,160,0.15)] transition-colors text-lg">
                     {f.icon}
                   </div>
                   {f.tag && (
-                    <span className="font-mono-data text-[10px] font-bold px-2 py-0.5 rounded" style={{ background: 'rgba(0,217,126,0.12)', color: 'var(--green)', border: '1px solid rgba(0,217,126,0.2)' }}>
+                    <span className="font-mono-data text-[10px] font-bold px-2 py-0.5 rounded" style={{ background: 'rgba(0,230,160,0.12)', color: 'var(--green)', border: '1px solid rgba(0,230,160,0.2)' }}>
                       {f.tag}
                     </span>
                   )}
@@ -580,8 +545,8 @@ export default function LoginPage() {
             </div>
 
             {/* Remlo — highlighted */}
-            <div className="rounded-2xl p-6 border-2 relative" style={{ background: 'rgba(0,217,126,0.05)', borderColor: 'var(--green)' }}>
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-xs font-mono-data font-bold" style={{ background: 'var(--green)', color: '#0B0F19' }}>
+            <div className="rounded-2xl p-6 border-2 relative" style={{ background: 'rgba(0,230,160,0.05)', borderColor: 'var(--green)' }}>
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-xs font-mono-data font-bold" style={{ background: 'var(--green)', color: '#080C14' }}>
                 RECOMMENDED
               </div>
               <div className="text-lg font-heading font-bold mb-5 text-[var(--green)]">Remlo ⚡</div>
@@ -628,7 +593,7 @@ export default function LoginPage() {
       </section>
 
       {/* ═══ LIVE STATS TICKER ═══ */}
-      <div className="border-y border-[rgba(255,255,255,0.05)] py-4 overflow-hidden" style={{ background: 'rgba(0,217,126,0.04)' }}>
+      <div className="border-y border-[rgba(255,255,255,0.05)] py-4 overflow-hidden" style={{ background: 'rgba(0,230,160,0.04)' }}>
         <div className="flex items-center gap-16">
           <div className="flex gap-16 shrink-0 items-center animate-marquee">
             {[...Array(3)].map((_, set) => (
@@ -763,11 +728,11 @@ export default function LoginPage() {
               </div>
 
               {/* Right: form */}
-              <div className="glass rounded-2xl p-6 border-[rgba(0,217,126,0.15)]">
+              <div className="glass rounded-2xl p-6 border-[rgba(0,230,160,0.15)]">
                 {sent ? (
                   <div className="text-center py-6">
                     <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4 shadow-glow" style={{ background: 'linear-gradient(135deg, var(--green-light), var(--green))' }}>
-                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0B0F19" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 12 10 16 18 8" /></svg>
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#080C14" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 12 10 16 18 8" /></svg>
                     </div>
                     <h3 className="font-heading text-xl font-semibold mb-1">Check your inbox</h3>
                     <p className="text-sm text-[var(--text-secondary)]">We sent a magic link to {email}</p>

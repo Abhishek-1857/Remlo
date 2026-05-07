@@ -189,7 +189,7 @@ export default function BulkPayoutPage() {
       <div
         className="fixed inset-0 pointer-events-none"
         style={{
-          backgroundImage: "radial-gradient(circle, #1A1A22 1px, transparent 1px)",
+          backgroundImage: "radial-gradient(circle, #0E1420 1px, transparent 1px)",
           backgroundSize: "24px 24px",
           opacity: 0.4,
           zIndex: 0,
@@ -201,7 +201,7 @@ export default function BulkPayoutPage() {
         style={{
           top: "-80px", right: "-80px",
           width: "300px", height: "300px",
-          background: "radial-gradient(circle, rgba(0,217,126,0.05) 0%, transparent 70%)",
+          background: "radial-gradient(circle, rgba(0,230,160,0.05) 0%, transparent 70%)",
           zIndex: 0,
         }}
       />
@@ -235,7 +235,7 @@ export default function BulkPayoutPage() {
           {allReady && (
             <div
               className="flex items-center gap-2 px-4 py-2.5 rounded-lg mb-3 text-sm"
-              style={{ background: "rgba(0,217,126,0.08)", border: "1px solid rgba(0,217,126,0.2)", color: "var(--green)" }}
+              style={{ background: "rgba(0,230,160,0.08)", border: "1px solid rgba(0,230,160,0.2)", color: "var(--green)" }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12" />
@@ -260,7 +260,7 @@ export default function BulkPayoutPage() {
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="table-header" style={{ borderBottom: "1px solid #1A1A22" }}>
+                  <tr className="table-header" style={{ borderBottom: "1px solid #0E1420" }}>
                     <th className="px-4 py-3 text-left w-12">
                       <input
                         type="checkbox"
@@ -286,8 +286,8 @@ export default function BulkPayoutPage() {
                         style={{
                           borderBottom: "1px solid var(--border)",
                           minHeight: "64px",
-                          background: isChecked ? "rgba(0,217,126,0.06)" : undefined,
-                          borderLeft: isChecked ? "3px solid #00D97E" : "3px solid transparent",
+                          background: isChecked ? "rgba(0,230,160,0.06)" : undefined,
+                          borderLeft: isChecked ? "3px solid #00E6A0" : "3px solid transparent",
                         }}
                       >
                         <td className="px-4" style={{ height: "64px", width: "48px" }}>
@@ -318,7 +318,7 @@ export default function BulkPayoutPage() {
                           </div>
                         </td>
                         <td className="px-4 hidden md:table-cell" style={{ height: "64px", width: "180px" }}>
-                          <span className="font-mono-data text-[11px]" style={{ color: "#3A3A58" }}>
+                          <span className="font-mono-data text-[11px]" style={{ color: "#3A4A66" }}>
                             {truncateWallet(c.solana_wallet)}
                           </span>
                         </td>
@@ -336,7 +336,7 @@ export default function BulkPayoutPage() {
                                 onClick={(e) => e.stopPropagation()}
                                 autoFocus={amount === ""}
                                 className="pl-6 pr-3 font-mono-data text-sm input-base w-full text-right"
-                                style={{ height: "36px", background: "#0E0E12" }}
+                                style={{ height: "36px", background: "#0A0E18" }}
                               />
                             </div>
                           ) : (
@@ -426,7 +426,7 @@ export default function BulkPayoutPage() {
               style={{
                 height: "48px",
                 ...(canProceed
-                  ? { background: "var(--green)", color: "#0B0F19", boxShadow: "0 0 20px rgba(0,217,126,0.35)" }
+                  ? { background: "var(--green)", color: "#080C14", boxShadow: "0 0 20px rgba(0,230,160,0.35)" }
                   : { background: "var(--bg-elevated)", color: "var(--text-muted)", border: "1px solid var(--border)", cursor: "not-allowed" }
                 ),
               }}
@@ -510,7 +510,7 @@ export default function BulkPayoutPage() {
                       className="text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0"
                       style={
                         b.status === "done"
-                          ? { background: "rgba(0,217,126,0.12)", color: "var(--green)" }
+                          ? { background: "rgba(0,230,160,0.12)", color: "var(--green)" }
                           : b.status === "partial"
                             ? { background: "rgba(255,173,51,0.12)", color: "var(--amber)" }
                             : { background: "rgba(99,143,255,0.12)", color: "var(--blue)" }

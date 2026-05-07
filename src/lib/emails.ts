@@ -10,6 +10,7 @@ export interface PayoutEmailParams {
   amountUsd: number;
   solanaSignature: string;
   cluster: "devnet" | "mainnet-beta";
+  settlementMs?: number;
 }
 
 function truncateSig(sig: string) {
@@ -25,11 +26,18 @@ function formatAmount(amount: number) {
   return amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function formatSettlement(ms?: number): string {
+  if (!ms) return "~2 seconds";
+  const s = ms / 1000;
+  return s < 1 ? `${s.toFixed(1)} seconds` : `${s.toFixed(1)} seconds`;
+}
+
 function contractorEmailHtml(params: PayoutEmailParams): string {
-  const { contractorName, founderEmail, amountUsd, solanaSignature, cluster } = params;
+  const { contractorName, founderEmail, amountUsd, solanaSignature, cluster, settlementMs } = params;
   const amt = formatAmount(amountUsd);
   const url = solscanUrl(solanaSignature, cluster);
   const sig = truncateSig(solanaSignature);
+  const settleText = formatSettlement(settlementMs);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -41,7 +49,7 @@ function contractorEmailHtml(params: PayoutEmailParams): string {
 
         <!-- Header -->
         <tr><td style="padding:32px 40px 24px;text-align:center;border-bottom:1px solid #1E1E24;">
-          <div style="font-size:24px;font-weight:900;color:#00D97E;letter-spacing:-0.5px;">Remlo</div>
+          <div style="font-size:24px;font-weight:900;color:#00E6A0;letter-spacing:-0.5px;">Remlo</div>
         </td></tr>
 
         <!-- Body -->
@@ -53,7 +61,7 @@ function contractorEmailHtml(params: PayoutEmailParams): string {
           <p style="margin:0 0 32px;font-size:14px;color:#8A8A96;">Hi ${contractorName}, sent by <span style="color:#C0C0CC;">${founderEmail}</span></p>
 
           <!-- CTA Button -->
-          <a href="${url}" style="display:inline-block;background:#00D97E;color:#0A0A0B;font-size:14px;font-weight:700;text-decoration:none;padding:12px 24px;border-radius:8px;">View on Solscan →</a>
+          <a href="${url}" style="display:inline-block;background:#00E6A0;color:#0A0A0B;font-size:14px;font-weight:700;text-decoration:none;padding:12px 24px;border-radius:8px;">View on Solscan →</a>
 
           <!-- Tx Hash -->
           <p style="margin:16px 0 32px;font-family:monospace;font-size:11px;color:#3A3A50;">${sig}</p>
@@ -61,7 +69,7 @@ function contractorEmailHtml(params: PayoutEmailParams): string {
           <!-- Pills -->
           <table cellpadding="0" cellspacing="0" style="margin:0 auto;">
             <tr>
-              <td style="padding:0 4px;"><span style="display:inline-block;background:#1A1A1F;border:1px solid #2A2A30;border-radius:99px;padding:6px 14px;color:#8A8A96;font-size:12px;">⚡ Settled in ~2 seconds</span></td>
+              <td style="padding:0 4px;"><span style="display:inline-block;background:#1A1A1F;border:1px solid #2A2A30;border-radius:99px;padding:6px 14px;color:#8A8A96;font-size:12px;">⚡ Settled in ${settleText}</span></td>
               <td style="padding:0 4px;"><span style="display:inline-block;background:#1A1A1F;border:1px solid #2A2A30;border-radius:99px;padding:6px 14px;color:#8A8A96;font-size:12px;">💸 Fee: ~$0.001</span></td>
               <td style="padding:0 4px;"><span style="display:inline-block;background:#1A1A1F;border:1px solid #2A2A30;border-radius:99px;padding:6px 14px;color:#8A8A96;font-size:12px;">🔒 Stablecoin: always $1</span></td>
             </tr>
@@ -81,7 +89,7 @@ function contractorEmailHtml(params: PayoutEmailParams): string {
 }
 
 function founderEmailHtml(params: PayoutEmailParams): string {
-  const { contractorName, amountUsd, solanaSignature, cluster } = params;
+  const { contractorName, amountUsd, solanaSignature, cluster, settlementMs } = params;
   const amt = formatAmount(amountUsd);
   const url = solscanUrl(solanaSignature, cluster);
   const sig = truncateSig(solanaSignature);
@@ -89,14 +97,16 @@ function founderEmailHtml(params: PayoutEmailParams): string {
     month: "short", day: "numeric", year: "numeric",
     hour: "2-digit", minute: "2-digit", timeZoneName: "short",
   });
+  const settleText = formatSettlement(settlementMs);
 
   const rows = [
     { label: "Contractor", value: contractorName, color: "#F2F2F3", bg: "#111113" },
-    { label: "Amount", value: `$${amt} USDC`, color: "#00D97E", bg: "#161618" },
+    { label: "Amount", value: `$${amt} USDC`, color: "#00E6A0", bg: "#161618" },
     { label: "Network", value: "Solana", color: "#F2F2F3", bg: "#111113" },
     { label: "Network Fee", value: "~$0.001", color: "#F2F2F3", bg: "#161618" },
-    { label: "Status", value: "✓ Confirmed", color: "#00D97E", bg: "#111113" },
-    { label: "Time", value: now, color: "#8A8A96", bg: "#161618" },
+    { label: "Settlement", value: `⚡ ${settleText}`, color: "#00E6A0", bg: "#111113" },
+    { label: "Status", value: "✓ Confirmed", color: "#00E6A0", bg: "#161618" },
+    { label: "Time", value: now, color: "#8A8A96", bg: "#111113" },
   ];
 
   return `<!DOCTYPE html>
@@ -109,25 +119,25 @@ function founderEmailHtml(params: PayoutEmailParams): string {
 
         <!-- Header -->
         <tr><td style="padding:32px 40px 24px;text-align:center;border-bottom:1px solid #1E1E24;">
-          <div style="font-size:24px;font-weight:900;color:#00D97E;letter-spacing:-0.5px;">Remlo</div>
+          <div style="font-size:24px;font-weight:900;color:#00E6A0;letter-spacing:-0.5px;">Remlo</div>
         </td></tr>
 
         <!-- Body -->
         <tr><td style="padding:40px 40px 32px;">
-          <h1 style="margin:0 0 8px;font-size:28px;font-weight:800;color:#00D97E;text-align:center;">Payout Confirmed ✓</h1>
+          <h1 style="margin:0 0 8px;font-size:28px;font-weight:800;color:#00E6A0;text-align:center;">Payout Confirmed ✓</h1>
           <p style="margin:0 0 32px;font-size:14px;color:#8A8A96;text-align:center;">Your payment has been settled on Solana.</p>
 
           <!-- Summary Table -->
           <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:8px;overflow:hidden;border:1px solid #1E1E24;margin-bottom:32px;">
             ${rows.map(r => `<tr>
               <td style="padding:12px 16px;font-size:13px;color:#8A8A96;background:${r.bg};width:40%;">${r.label}</td>
-              <td style="padding:12px 16px;font-size:13px;color:${r.color};background:${r.bg};font-weight:${r.color === "#00D97E" ? "700" : "400"};">${r.value}</td>
+              <td style="padding:12px 16px;font-size:13px;color:${r.color};background:${r.bg};font-weight:${r.color === "#00E6A0" ? "700" : "400"};">${r.value}</td>
             </tr>`).join("")}
           </table>
 
           <!-- CTA Button -->
           <div style="text-align:center;">
-            <a href="${url}" style="display:inline-block;background:#00D97E;color:#0A0A0B;font-size:14px;font-weight:700;text-decoration:none;padding:12px 24px;border-radius:8px;">View Transaction on Solscan →</a>
+            <a href="${url}" style="display:inline-block;background:#00E6A0;color:#0A0A0B;font-size:14px;font-weight:700;text-decoration:none;padding:12px 24px;border-radius:8px;">View Transaction on Solscan →</a>
             <p style="margin:12px 0 0;font-family:monospace;font-size:11px;color:#3A3A50;">${sig}</p>
           </div>
         </td></tr>
@@ -163,14 +173,14 @@ function bulkSummaryEmailHtml(params: BulkPayoutSummaryParams): string {
   const rows = items
     .map((item, idx) => {
       const bg = idx % 2 === 0 ? "#111113" : "#161618";
-      const statusColor = item.txSig ? "#00D97E" : "#E05252";
+      const statusColor = item.txSig ? "#00E6A0" : "#E05252";
       const statusText = item.txSig ? "✓ Done" : "✗ Failed";
       const txDisplay = item.txSig
-        ? `<a href="https://solscan.io/tx/${item.txSig}?cluster=devnet" style="color:#00D97E;font-family:monospace;font-size:11px;">${truncateSig(item.txSig)}</a>`
+        ? `<a href="https://solscan.io/tx/${item.txSig}?cluster=devnet" style="color:#00E6A0;font-family:monospace;font-size:11px;">${truncateSig(item.txSig)}</a>`
         : `<span style="color:#E05252;font-size:12px;">${item.error || "Failed"}</span>`;
       return `<tr>
         <td style="padding:10px 16px;font-size:13px;color:#C0C0CC;background:${bg};">${item.name}</td>
-        <td style="padding:10px 16px;font-size:13px;color:#00D97E;background:${bg};font-weight:700;">$${formatAmount(item.amountUsd)}</td>
+        <td style="padding:10px 16px;font-size:13px;color:#00E6A0;background:${bg};font-weight:700;">$${formatAmount(item.amountUsd)}</td>
         <td style="padding:10px 16px;font-size:12px;color:${statusColor};background:${bg};">${statusText}</td>
         <td style="padding:10px 16px;background:${bg};">${txDisplay}</td>
       </tr>`;
@@ -186,11 +196,11 @@ function bulkSummaryEmailHtml(params: BulkPayoutSummaryParams): string {
       <table width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#111113;border-radius:12px;border:1px solid #1E1E24;overflow:hidden;">
 
         <tr><td style="padding:32px 40px 24px;text-align:center;border-bottom:1px solid #1E1E24;">
-          <div style="font-size:24px;font-weight:900;color:#00D97E;letter-spacing:-0.5px;">Remlo</div>
+          <div style="font-size:24px;font-weight:900;color:#00E6A0;letter-spacing:-0.5px;">Remlo</div>
         </td></tr>
 
         <tr><td style="padding:40px 40px 32px;">
-          <h1 style="margin:0 0 8px;font-size:26px;font-weight:800;color:#00D97E;text-align:center;">Bulk Payout Complete ✓</h1>
+          <h1 style="margin:0 0 8px;font-size:26px;font-weight:800;color:#00E6A0;text-align:center;">Bulk Payout Complete ✓</h1>
           <p style="margin:0 0 8px;font-size:14px;color:#8A8A96;text-align:center;">$${total} USDC sent to ${items.length} contractor${items.length !== 1 ? "s" : ""}</p>
           <p style="margin:0 0 32px;font-size:12px;color:#3A3A50;text-align:center;">${now}</p>
 
@@ -207,11 +217,11 @@ function bulkSummaryEmailHtml(params: BulkPayoutSummaryParams): string {
           <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:8px;border:1px solid #1E1E24;">
             <tr>
               <td style="padding:14px 20px;font-size:14px;color:#8A8A96;background:#111113;">Total Sent</td>
-              <td style="padding:14px 20px;font-size:16px;color:#00D97E;background:#111113;font-weight:800;text-align:right;">$${total} USDC</td>
+              <td style="padding:14px 20px;font-size:16px;color:#00E6A0;background:#111113;font-weight:800;text-align:right;">$${total} USDC</td>
             </tr>
             ${doneCount > 0 ? `<tr>
               <td style="padding:10px 20px;font-size:13px;color:#8A8A96;background:#161618;">Successful</td>
-              <td style="padding:10px 20px;font-size:13px;color:#00D97E;background:#161618;text-align:right;">${doneCount} of ${items.length}</td>
+              <td style="padding:10px 20px;font-size:13px;color:#00E6A0;background:#161618;text-align:right;">${doneCount} of ${items.length}</td>
             </tr>` : ""}
             ${failedCount > 0 ? `<tr>
               <td style="padding:10px 20px;font-size:13px;color:#8A8A96;background:#111113;">Failed</td>
@@ -264,7 +274,7 @@ function contractorOnboardedEmailHtml(params: ContractorOnboardedParams): string
     { label: "Name", value: contractorName, color: "#F2F2F3", bg: "#111113" },
     { label: "Email", value: contractorEmail || "—", color: "#C0C0CC", bg: "#161618" },
     { label: "Solana Wallet", value: truncatedWallet, color: "#F2F2F3", bg: "#111113", mono: true },
-    { label: "Status", value: "✓ Ready to receive payments", color: "#00D97E", bg: "#161618" },
+    { label: "Status", value: "✓ Ready to receive payments", color: "#00E6A0", bg: "#161618" },
   ];
 
   return `<!DOCTYPE html>
@@ -276,24 +286,24 @@ function contractorOnboardedEmailHtml(params: ContractorOnboardedParams): string
       <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#111113;border-radius:12px;border:1px solid #1E1E24;overflow:hidden;">
 
         <tr><td style="padding:32px 40px 24px;text-align:center;border-bottom:1px solid #1E1E24;">
-          <div style="font-size:24px;font-weight:900;color:#00D97E;letter-spacing:-0.5px;">Remlo</div>
+          <div style="font-size:24px;font-weight:900;color:#00E6A0;letter-spacing:-0.5px;">Remlo</div>
         </td></tr>
 
         <tr><td style="padding:40px 40px 32px;">
           <h1 style="margin:0 0 8px;font-size:26px;font-weight:800;color:#F2F2F3;text-align:center;">New Contractor Onboarded</h1>
           <p style="margin:0 0 32px;font-size:14px;color:#8A8A96;text-align:center;">
-            <span style="color:#00D97E;font-weight:700;">${contractorName}</span> has joined Remlo and is ready to be paid.
+            <span style="color:#00E6A0;font-weight:700;">${contractorName}</span> has joined Remlo and is ready to be paid.
           </p>
 
           <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:8px;overflow:hidden;border:1px solid #1E1E24;margin-bottom:32px;">
             ${rows.map((r) => `<tr>
               <td style="padding:12px 16px;font-size:13px;color:#8A8A96;background:${r.bg};width:35%;">${r.label}</td>
-              <td style="padding:12px 16px;font-size:13px;color:${r.color};background:${r.bg};${(r as { mono?: boolean }).mono ? "font-family:monospace;" : ""}font-weight:${r.color === "#00D97E" ? "700" : "400"};">${r.value}</td>
+              <td style="padding:12px 16px;font-size:13px;color:${r.color};background:${r.bg};${(r as { mono?: boolean }).mono ? "font-family:monospace;" : ""}font-weight:${r.color === "#00E6A0" ? "700" : "400"};">${r.value}</td>
             </tr>`).join("")}
           </table>
 
           <div style="text-align:center;">
-            <a href="${payUrl}" style="display:inline-block;background:#00D97E;color:#0A0A0B;font-size:14px;font-weight:700;text-decoration:none;padding:12px 28px;border-radius:8px;">
+            <a href="${payUrl}" style="display:inline-block;background:#00E6A0;color:#0A0A0B;font-size:14px;font-weight:700;text-decoration:none;padding:12px 28px;border-radius:8px;">
               Pay ${contractorName} Now →
             </a>
           </div>

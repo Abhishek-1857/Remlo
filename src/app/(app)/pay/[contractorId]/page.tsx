@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/toast";
 import { WalletAddress } from "@/components/wallet-address";
+import { BoltAnimation, BoltIconAnimated } from "@/components/bolt-animation";
 
 interface Contractor {
   id: string;
@@ -99,7 +100,7 @@ export default function PayPage({
       <div
         className="fixed inset-0 pointer-events-none"
         style={{
-          backgroundImage: "radial-gradient(circle, #1A1A22 1px, transparent 1px)",
+          backgroundImage: "radial-gradient(circle, #0E1420 1px, transparent 1px)",
           backgroundSize: "24px 24px",
           opacity: 0.4,
           zIndex: 0,
@@ -111,7 +112,7 @@ export default function PayPage({
         style={{
           top: "-100px", right: "-100px",
           width: "400px", height: "400px",
-          background: "radial-gradient(circle, rgba(0,217,126,0.06) 0%, transparent 70%)",
+          background: "radial-gradient(circle, rgba(0,230,160,0.06) 0%, transparent 70%)",
           zIndex: 0,
         }}
       />
@@ -134,7 +135,7 @@ export default function PayPage({
         {/* ── LEFT COLUMN (55%) ── */}
         <div className="flex-[11_11_0%] min-w-0">
           {/* Contractor card */}
-          <div className="card p-5 mb-4" style={{ borderColor: "rgba(0,217,126,0.15)" }}>
+          <div className="card p-5 mb-4" style={{ borderColor: "rgba(0,230,160,0.15)" }}>
             <div className="flex items-center gap-4">
               <div
                 className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0"
@@ -147,7 +148,7 @@ export default function PayPage({
                   <p className="font-semibold text-[var(--text-primary)]">{contractor.name}</p>
                   <span
                     className="text-[10px] font-medium px-1.5 py-0.5 rounded-full"
-                    style={{ background: "rgba(0,217,126,0.12)", color: "var(--green)" }}
+                    style={{ background: "rgba(0,230,160,0.12)", color: "var(--green)" }}
                   >
                     Active
                   </span>
@@ -177,11 +178,27 @@ export default function PayPage({
               display: "flex",
               flexDirection: "column",
               justifyContent: "center",
+              position: "relative",
+              overflow: "hidden",
               boxShadow: amountNum > 0
-                ? "0 0 0 1px rgba(0,217,126,0.3), 0 0 40px rgba(0,217,126,0.08)"
+                ? "0 0 0 1px rgba(0,230,160,0.3), 0 0 40px rgba(0,230,160,0.08)"
                 : undefined,
             }}
           >
+            {/* Bolt watermark accent */}
+            <div
+              style={{
+                position: "absolute",
+                right: "-10px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                opacity: amountNum > 0 ? 0.06 : 0.02,
+                transition: "opacity 0.5s ease",
+                pointerEvents: "none",
+              }}
+            >
+              <BoltAnimation size={80} />
+            </div>
             <label className="block text-[10px] uppercase tracking-wider text-center mb-6" style={{ color: "var(--text-muted)" }}>
               Amount (USD)
             </label>
@@ -234,7 +251,7 @@ export default function PayPage({
             <div className="flex justify-between text-xs items-center">
               <span style={{ color: "var(--text-muted)" }}>Settlement time</span>
               <span className="flex items-center gap-1.5 font-mono-data" style={{ color: "var(--green)" }}>
-                <span className="w-1.5 h-1.5 rounded-full bg-[var(--green)] animate-pulse-slow inline-block flex-shrink-0" />
+                <BoltIconAnimated size={7} />
                 &lt;2 seconds
               </span>
             </div>
@@ -248,11 +265,13 @@ export default function PayPage({
           <button
             onClick={handlePay}
             disabled={paying || !isValid}
-            className="w-full py-3.5 text-sm font-semibold rounded-lg transition-all duration-200"
+            className={`w-full py-3.5 text-sm font-semibold rounded-lg transition-all duration-200 ${paying ? "bolt-btn-processing" : ""}`}
             style={
-              isValid && !paying
-                ? { background: "var(--green)", color: "#0B0F19", boxShadow: "0 0 24px rgba(0,217,126,0.4)" }
-                : { background: "var(--bg-elevated)", color: "var(--text-muted)", border: "1px solid var(--border)", cursor: "not-allowed" }
+              paying
+                ? { background: "var(--green)", color: "#080C14", boxShadow: "0 0 32px rgba(0,230,160,0.5)" }
+                : isValid
+                  ? { background: "var(--green)", color: "#080C14", boxShadow: "0 0 24px rgba(0,230,160,0.4)" }
+                  : { background: "var(--bg-elevated)", color: "var(--text-muted)", border: "1px solid var(--border)", cursor: "not-allowed" }
             }
           >
             {paying
@@ -270,42 +289,56 @@ export default function PayPage({
         {/* ── RIGHT COLUMN (45%) ── */}
         <div className="flex-[9_9_0%] min-w-[260px] self-start sticky top-6 space-y-4">
 
-          {/* Transfer Summary — animates in when amount > 0 */}
+          {/* Transfer Summary — slides in when amount > 0 */}
           <div
-            className="card p-5 transition-all duration-300"
+            className="summary-slide-wrapper"
             style={{
-              opacity: amountNum > 0 ? 1 : 0,
-              transform: amountNum > 0 ? "translateY(0)" : "translateY(-8px)",
-              pointerEvents: amountNum > 0 ? "auto" : "none",
-              borderLeftColor: "var(--green)",
-              borderLeftWidth: "3px",
-              background: "rgba(0,217,126,0.03)",
+              display: "grid",
+              gridTemplateRows: amountNum > 0 ? "1fr" : "0fr",
+              transition: "grid-template-rows 400ms cubic-bezier(0.4, 0, 0.2, 1)",
             }}
           >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] mb-4" style={{ color: "var(--text-muted)" }}>
-              You&apos;re sending
-            </p>
-            <p className="font-mono-data font-bold glow-green mb-4" style={{ fontSize: "28px", color: "var(--green)" }}>
-              ${amountNum.toFixed(2)} USDC
-            </p>
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between">
-                <span style={{ color: "var(--text-muted)" }}>To</span>
-                <span className="font-medium truncate max-w-[160px] text-right" style={{ color: "var(--text-secondary)" }}>
-                  {contractor.name}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span style={{ color: "var(--text-muted)" }}>Network</span>
-                <span className="font-mono-data" style={{ color: "var(--text-secondary)" }}>Solana Devnet</span>
-              </div>
-              <div className="flex justify-between">
-                <span style={{ color: "var(--text-muted)" }}>Fee</span>
-                <span className="font-mono-data" style={{ color: "var(--green)" }}>~$0.001</span>
-              </div>
-              <div className="flex justify-between">
-                <span style={{ color: "var(--text-muted)" }}>Estimated arrival</span>
-                <span className="font-mono-data" style={{ color: "var(--green)" }}>&lt;2 seconds</span>
+            <div style={{ overflow: "hidden" }}>
+              <div
+                className="card p-5 mb-4"
+                style={{
+                  opacity: amountNum > 0 ? 1 : 0,
+                  transform: amountNum > 0 ? "translateY(0)" : "translateY(-12px)",
+                  transition: "opacity 300ms 100ms, transform 300ms 100ms",
+                  borderLeftColor: "var(--green)",
+                  borderLeftWidth: "3px",
+                  background: "rgba(0,230,160,0.03)",
+                }}
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-[0.1em] mb-4" style={{ color: "var(--text-muted)" }}>
+                  You&apos;re sending
+                </p>
+                <p className="font-mono-data font-bold glow-green mb-4" style={{ fontSize: "28px", color: "var(--green)" }}>
+                  ${amountNum.toFixed(2)} USDC
+                </p>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span style={{ color: "var(--text-muted)" }}>To</span>
+                    <span className="font-medium truncate max-w-[160px] text-right" style={{ color: "var(--text-secondary)" }}>
+                      {contractor.name}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span style={{ color: "var(--text-muted)" }}>Network</span>
+                    <span className="font-mono-data" style={{ color: "var(--text-secondary)" }}>Solana Devnet</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span style={{ color: "var(--text-muted)" }}>Fee</span>
+                    <span className="font-mono-data" style={{ color: "var(--green)" }}>~$0.001</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span style={{ color: "var(--text-muted)" }}>Estimated arrival</span>
+                    <span className="flex items-center gap-1.5 font-mono-data" style={{ color: "var(--green)" }}>
+                      <BoltIconAnimated size={6} />
+                      &lt;2 seconds
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -345,7 +378,7 @@ export default function PayPage({
             </div>
             <div
               className="rounded-lg px-3 py-2 text-center transition-all duration-300"
-              style={{ background: "rgba(0,217,126,0.08)", border: "1px solid rgba(0,217,126,0.15)" }}
+              style={{ background: "rgba(0,230,160,0.08)", border: "1px solid rgba(0,230,160,0.15)" }}
             >
               <p className="text-xs" style={{ color: "var(--text-muted)" }}>You save</p>
               <p

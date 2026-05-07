@@ -104,7 +104,7 @@ export default function PayoutsPage() {
               className="px-3 py-1 text-xs rounded-md font-medium transition-all"
               style={
                 filter === opt.value
-                  ? { background: 'var(--green)', color: '#0B0F19' }
+                  ? { background: 'var(--green)', color: '#080C14' }
                   : { color: 'var(--text-muted)', background: 'transparent' }
               }
             >
@@ -157,7 +157,7 @@ export default function PayoutsPage() {
               <tr className="table-header border-b border-[var(--border)]">
                 <th className="px-5 py-3 text-left font-medium">Contractor</th>
                 <th className="px-5 py-3 text-left font-medium">Amount</th>
-                <th className="px-5 py-3 text-left font-medium">Status</th>
+                <th className="px-5 py-3 text-left font-medium w-[120px]">Status</th>
                 <th className="px-5 py-3 text-left font-medium hidden md:table-cell">Date</th>
                 <th className="px-5 py-3 text-right font-medium w-10"></th>
               </tr>
@@ -173,7 +173,7 @@ export default function PayoutsPage() {
                     <tr
                       key={p.id}
                       className="table-row cursor-pointer"
-                      style={isExpanded ? { background: 'rgba(0,217,126,0.03)', borderLeft: '2px solid #00D97E' } : {}}
+                      style={isExpanded ? { background: 'rgba(0,230,160,0.03)', borderLeft: '2px solid #00E6A0' } : {}}
                       onClick={() => setExpandedId(isExpanded ? null : p.id)}
                     >
                       <td className="px-5 py-3.5">
@@ -218,7 +218,7 @@ export default function PayoutsPage() {
                     {/* Expanded row */}
                     {isExpanded && (
                       <tr key={`${p.id}-expanded`} className="payout-expanded-row">
-                        <td colSpan={5} className="px-5 pb-4 pt-1" style={{ background: 'rgba(0,217,126,0.03)', borderLeft: '2px solid #00D97E' }}>
+                        <td colSpan={5} className="px-5 pb-4 pt-1" style={{ background: 'rgba(0,230,160,0.03)', borderLeft: '2px solid #00E6A0' }}>
                           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 py-3">
                             {/* TX Hash */}
                             <div>
@@ -272,9 +272,9 @@ export default function PayoutsPage() {
                               rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}
                               className="inline-flex items-center gap-1.5 mt-1 px-3 py-1.5 text-xs rounded-lg font-medium transition-colors"
-                              style={{ background: 'rgba(0,217,126,0.1)', color: 'var(--green)', border: '1px solid rgba(0,217,126,0.2)' }}
-                              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0,217,126,0.18)')}
-                              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(0,217,126,0.1)')}
+                              style={{ background: 'rgba(0,230,160,0.1)', color: 'var(--green)', border: '1px solid rgba(0,230,160,0.2)' }}
+                              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0,230,160,0.18)')}
+                              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(0,230,160,0.1)')}
                             >
                               View on Solscan
                               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

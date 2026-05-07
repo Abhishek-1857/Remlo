@@ -35,7 +35,7 @@ function daysAgo(dateStr: string) {
 }
 
 function nameAccentColor(name: string): string {
-  const colors = ["#00D97E", "#638FFF", "#9B6DFF", "#33C9C9"];
+  const colors = ["#00E6A0", "#638FFF", "#9B6DFF", "#33C9C9"];
   let h = 0;
   for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
   return colors[Math.abs(h) % colors.length];
@@ -127,7 +127,7 @@ export default function SendPaymentPage() {
       <div
         className="fixed inset-0 pointer-events-none"
         style={{
-          backgroundImage: "radial-gradient(circle, #1A1A22 1px, transparent 1px)",
+          backgroundImage: "radial-gradient(circle, #0E1420 1px, transparent 1px)",
           backgroundSize: "24px 24px",
           opacity: 0.4,
           zIndex: 0,
@@ -139,7 +139,7 @@ export default function SendPaymentPage() {
         style={{
           top: "-100px", right: "-100px",
           width: "400px", height: "400px",
-          background: "radial-gradient(circle, rgba(0,217,126,0.06) 0%, transparent 70%)",
+          background: "radial-gradient(circle, rgba(0,230,160,0.06) 0%, transparent 70%)",
           zIndex: 0,
         }}
       />
@@ -183,7 +183,7 @@ export default function SendPaymentPage() {
             )}
           </div>
 
-          <p className="text-[11px] mb-5 font-mono-data" style={{ color: "#3A3A58" }}>
+          <p className="text-[11px] mb-5 font-mono-data" style={{ color: "#3A4A66" }}>
             ↑↓ navigate · Enter to select · Esc to clear
           </p>
 
@@ -222,8 +222,8 @@ export default function SendPaymentPage() {
                       minHeight: "80px",
                       gap: "16px",
                       background: isFocused
-                        ? "linear-gradient(90deg, rgba(0,217,126,0.04) 0%, #0F1525 100%)"
-                        : "linear-gradient(90deg, #13131A 0%, #0F0F14 100%)",
+                        ? "linear-gradient(90deg, rgba(0,230,160,0.04) 0%, #0F1525 100%)"
+                        : "linear-gradient(90deg, #0C1322 0%, #080C14 100%)",
                     }}
                   >
                     {/* Left accent bar */}
@@ -237,7 +237,7 @@ export default function SendPaymentPage() {
                       className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
                       style={{ background: `linear-gradient(135deg, ${accentColor}66, ${accentColor})` }}
                     >
-                      <span className="text-sm font-bold" style={{ color: "#0B0F19" }}>{initials}</span>
+                      <span className="text-sm font-bold" style={{ color: "#080C14" }}>{initials}</span>
                     </div>
 
                     {/* Name + email + wallet */}
@@ -246,7 +246,7 @@ export default function SendPaymentPage() {
                       {c.email && (
                         <p className="text-[12px] text-[var(--text-muted)] truncate mt-0.5">{c.email}</p>
                       )}
-                      <p className="text-[11px] font-mono-data mt-0.5 truncate" style={{ color: "#3A3A58" }}>
+                      <p className="text-[11px] font-mono-data mt-0.5 truncate" style={{ color: "#3A4A66" }}>
                         {truncateWallet(c.solana_wallet)}
                       </p>
                     </div>
@@ -290,7 +290,7 @@ export default function SendPaymentPage() {
         {/* ── RIGHT COLUMN (40%) ── */}
         <div
           className="flex-[2] min-w-[260px] self-start sticky top-6 space-y-4"
-          style={{ background: "radial-gradient(ellipse at top right, rgba(0,217,126,0.04) 0%, transparent 60%)" }}
+          style={{ background: "radial-gradient(ellipse at top right, rgba(0,230,160,0.04) 0%, transparent 60%)" }}
         >
           {/* Quick Stats */}
           <div className="card p-5">
@@ -342,7 +342,7 @@ export default function SendPaymentPage() {
                         className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
                         style={{ background: "linear-gradient(135deg, var(--green-light), var(--green))" }}
                       >
-                        <span className="text-[9px] font-bold" style={{ color: "#0B0F19" }}>{initials}</span>
+                        <span className="text-[9px] font-bold" style={{ color: "#080C14" }}>{initials}</span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium truncate" style={{ color: "var(--text-primary)" }}>{name}</p>

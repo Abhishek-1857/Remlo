@@ -60,7 +60,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         className="min-h-screen relative z-[1] transition-[margin] duration-300"
         style={{ marginLeft: collapsed ? "64px" : "200px" }}
       >
-        <header className="h-14 border-b border-[var(--border)] flex items-center justify-between px-8 bg-[var(--bg-base)]/80 backdrop-blur-sm sticky top-0 z-10">
+        <header className="h-14 flex items-center justify-between px-8 backdrop-blur-sm sticky top-0 z-10" style={{ borderBottom: "1px solid rgba(0,230,160,0.15)", background: "rgba(8,12,20,0.85)" }}>
           <h1 className="font-heading font-semibold text-xl text-[var(--text-primary)]">
             {title}
           </h1>
@@ -74,14 +74,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   onClick={() => setDropdownOpen((o) => !o)}
                   className="flex items-center gap-2 px-2.5 py-1.5 rounded-full text-sm font-medium transition-all"
                   style={{
-                    background: dropdownOpen ? 'rgba(0,217,126,0.12)' : 'rgba(0,217,126,0.07)',
-                    border: '1px solid rgba(0,217,126,0.25)',
+                    background: dropdownOpen ? 'rgba(0,230,160,0.12)' : 'rgba(0,230,160,0.07)',
+                    border: '1px solid rgba(0,230,160,0.25)',
                     color: 'var(--green)',
                   }}
                 >
                   <span
                     className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
-                    style={{ background: 'var(--green)', color: '#0B0F19' }}
+                    style={{ background: 'var(--green)', color: '#080C14' }}
                   >
                     {initials}
                   </span>
@@ -102,10 +102,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <div
                     className="absolute right-0 top-full mt-2 w-64 rounded-2xl overflow-hidden z-50 animate-fade-in"
                     style={{
-                      background: 'rgba(11,15,25,0.97)',
-                      border: '1px solid rgba(0,217,126,0.18)',
+                      background: 'rgba(8,12,20,0.97)',
+                      border: '1px solid rgba(0,230,160,0.2)',
                       backdropFilter: 'blur(24px)',
-                      boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(0,230,160,0.05)',
                     }}
                   >
                     {/* User header */}
@@ -113,15 +113,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       <div className="flex items-center gap-3">
                         <div
                           className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-                          style={{ background: 'linear-gradient(135deg, var(--green-light), var(--green))', color: '#0B0F19' }}
+                          style={{ background: 'linear-gradient(135deg, var(--green-light), var(--green))', color: '#080C14' }}
                         >
                           {initials}
                         </div>
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-[var(--text-primary)] truncate">{userEmail}</p>
                           <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className="w-1.5 h-1.5 rounded-full animate-pulse-slow" style={{ background: '#00D97E' }} />
-                            <span className="text-[10px] font-mono-data" style={{ color: '#00D97E' }}>Active · Devnet</span>
+                            <span className="w-1.5 h-1.5 rounded-full animate-pulse-slow" style={{ background: '#00E6A0' }} />
+                            <span className="text-[10px] font-mono-data" style={{ color: '#00E6A0' }}>Active · Devnet</span>
                           </div>
                         </div>
                       </div>

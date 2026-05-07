@@ -120,6 +120,7 @@ export async function POST(request: NextRequest) {
             amountUsd: Number(item.amount_usd),
             solanaSignature: txSig,
             cluster: "devnet",
+            settlementMs,
           }).catch(() => {});
         }
       } catch (err: unknown) {
@@ -222,11 +223,12 @@ export async function POST(request: NextRequest) {
   }
 
   let txSig: string | null = null;
+  let settlementMs: number | undefined;
 
   try {
     const sentAt = Date.now();
     txSig = await sendUsdc(contractor.solana_wallet, amountUsd);
-    const settlementMs = Date.now() - sentAt;
+    settlementMs = Date.now() - sentAt;
     await supabase
       .from("payouts")
       .update({ status: "done", solana_tx_sig: txSig, settlement_ms: settlementMs })
@@ -256,6 +258,7 @@ export async function POST(request: NextRequest) {
         amountUsd,
         solanaSignature: txSig,
         cluster: "devnet",
+        settlementMs,
       }).then(async () => {
         await supabase
           .from("payouts")

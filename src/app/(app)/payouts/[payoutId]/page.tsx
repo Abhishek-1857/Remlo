@@ -103,7 +103,7 @@ export default function PayoutDetailPage() {
           <div className="mt-3">
             <span
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-mono-data font-semibold glow-green"
-              style={{ background: "rgba(0,217,126,0.12)", color: "var(--green)", border: "1px solid rgba(0,217,126,0.2)" }}
+              style={{ background: "rgba(0,230,160,0.12)", color: "var(--green)", border: "1px solid rgba(0,230,160,0.2)" }}
             >
               ⚡ Settled in {(payout.settlement_ms / 1000).toFixed(1)}s
             </span>

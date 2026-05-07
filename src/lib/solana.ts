@@ -72,3 +72,18 @@ export async function sendUsdc(
 
   return signature;
 }
+
+export async function getTransactionTime(
+  signature: string
+): Promise<number | null> {
+  try {
+    const connection = getConnection();
+    const tx = await connection.getTransaction(signature, {
+      maxSupportedTransactionVersion: 0,
+    });
+    if (!tx?.blockTime) return null;
+    return tx.blockTime;
+  } catch {
+    return null;
+  }
+}
