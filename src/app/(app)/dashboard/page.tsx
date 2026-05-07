@@ -176,6 +176,11 @@ function DashboardContent() {
   const monthDiff = thisMonth - lastMonthCount;
   const prevMonthName = lastMonthStart.toLocaleString("default", { month: "long" });
 
+  const WIRE_FEE = 28;
+  const SOLANA_FEE = 0.001;
+  const donePayoutsCount = payouts.filter((p) => p.status === "done").length;
+  const feesSaved = donePayoutsCount * (WIRE_FEE - SOLANA_FEE);
+
   // Last 30 days area chart data
   const dailyData = (() => {
     const days: { date: string; amount: number }[] = [];
@@ -208,7 +213,7 @@ function DashboardContent() {
   return (
     <div className="animate-fade-in relative z-[1]">
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5 stagger-children">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-5 stagger-children">
         {/* Total Paid Out */}
         <div className="card p-6 min-h-[120px] flex flex-col justify-between relative overflow-hidden">
           <div className="flex items-start justify-between mb-3">
@@ -379,6 +384,35 @@ function DashboardContent() {
             </div>
           );
         })()}
+
+        {/* Fees Saved */}
+        <div className="card p-6 min-h-[120px] flex flex-col justify-between relative overflow-hidden">
+          <div className="flex items-start justify-between mb-3">
+            <span className="text-[11px] tracking-[0.08em] uppercase text-[var(--text-muted)] font-medium">Fees Saved</span>
+            <div className="w-7 h-7 rounded-lg bg-[var(--green-dim)] flex items-center justify-center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" />
+                <line x1="12" y1="6" x2="12" y2="8" /><line x1="12" y1="16" x2="12" y2="18" />
+              </svg>
+            </div>
+          </div>
+          <p
+            className={`text-[32px] font-mono-data font-semibold leading-none ${feesSaved > 0 ? "glow-green" : ""}`}
+            style={{ color: feesSaved > 0 ? "var(--green)" : "var(--text-muted)" }}
+          >
+            ${feesSaved.toFixed(0)}
+          </p>
+          <div className="flex items-center justify-between mt-3">
+            <p className="text-[10px] text-[var(--text-muted)]">vs wire transfers</p>
+            {donePayoutsCount > 0 && (
+              <span className="trend-pill">
+                {donePayoutsCount} × $28
+              </span>
+            )}
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ background: "linear-gradient(90deg, #00D97E, transparent)" }} />
+        </div>
       </div>
 
       {/* Charts */}
