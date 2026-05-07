@@ -138,6 +138,23 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         })}
       </nav>
 
+      {/* Status footer */}
+      <div className="px-3 py-2.5 border-t border-[var(--border)]">
+        {collapsed ? (
+          <div className="flex justify-center" title="Solana: Operational">
+            <span className="w-2 h-2 rounded-full animate-pulse-slow" style={{ background: "#00D97E" }} />
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 animate-pulse-slow" style={{ background: "#00D97E" }} />
+              <span className="text-[10px] font-medium" style={{ color: "#00D97E" }}>Solana: Operational</span>
+            </div>
+            <p className="text-[9px] text-[var(--text-muted)] leading-tight">Powered by Dodo Payments</p>
+          </>
+        )}
+      </div>
+
       {/* Logout */}
       <div className="px-2 py-3 border-t border-[var(--border)]">
         <button
