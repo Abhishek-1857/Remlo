@@ -57,9 +57,9 @@ export default function SendPaymentPage() {
   // Reset focused index when filter changes
   useEffect(() => { setFocusedIndex(-1); }, [search]);
 
-  function handleSelect(id: string) {
+  const handleSelect = useCallback((id: string) => {
     router.push(`/pay/${id}`);
-  }
+  }, [router]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {
@@ -71,7 +71,7 @@ export default function SendPaymentPage() {
     } else if (e.key === "Enter" && focusedIndex >= 0 && filtered[focusedIndex]) {
       handleSelect(filtered[focusedIndex].id);
     }
-  }, [filtered, focusedIndex]);
+  }, [filtered, focusedIndex, handleSelect]);
 
   return (
     <div className="animate-fade-in relative z-[1] max-w-2xl" onKeyDown={handleKeyDown}>

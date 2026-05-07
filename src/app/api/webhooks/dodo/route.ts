@@ -87,15 +87,15 @@ export async function POST(request: NextRequest) {
         await supabase.from("bulk_payout_items").update({ status: "done", solana_tx_sig: txSig }).eq("id", item.id);
 
         // Update pre-inserted processing row; fall back to insert if missing
-        const { count } = await supabase
+        const { data: updatedRows } = await supabase
           .from("payouts")
           .update({ status: "done", solana_tx_sig: txSig, dodo_payment_id: `${paymentId}_${item.id}` })
           .eq("bulk_payout_id", bulkPayoutId)
           .eq("contractor_id", item.contractor_id)
           .eq("status", "processing")
-          .select("id", { count: "exact", head: true });
+          .select("id");
 
-        if (!count || count === 0) {
+        if (!updatedRows || updatedRows.length === 0) {
           await supabase.from("payouts").insert({
             contractor_id: item.contractor_id,
             amount_usd: item.amount_usd,
