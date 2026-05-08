@@ -34,6 +34,7 @@ interface Multisig {
 
 interface TreasuryInfo {
   balance: number;
+  solBalance: number;
   available: number;
   pendingSum: number;
   pendingCount: number;
@@ -42,6 +43,9 @@ interface TreasuryInfo {
   walletAddress: string;
   fullAddress: string;
   cluster: string;
+  rpcUrl: string;
+  usdcMint: string;
+  usdcMintShort: string;
   rpcError: boolean;
   tier: "healthy" | "low" | "critical" | "insufficient";
   thresholds: { low: number; critical: number };
@@ -210,19 +214,39 @@ export default function TreasuryPage() {
           background: tier.bg,
         }}
       >
-        <span className="text-xl flex-shrink-0">{tier.icon}</span>
+        <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: tier.color, color: "var(--on-green)" }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 12 10 16 18 8" />
+          </svg>
+        </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold" style={{ color: tier.color }}>
-            {tier.label}
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-semibold" style={{ color: tier.color }}>
+              {tier.label}
+            </p>
+            <span
+              className="text-[9px] tracking-[0.1em] uppercase font-semibold px-1.5 py-0.5 rounded"
+              style={{ color: tier.color, background: "transparent", border: `1px solid ${tier.color}55` }}
+            >
+              ALL SYSTEMS
+            </span>
+          </div>
+          <p className="text-xs text-[var(--text-secondary)] mt-1">
+            {tier.message} <span className="text-[var(--text-muted)]">Next auto-check in 4h.</span>
           </p>
-          <p className="text-xs text-[var(--text-secondary)] mt-1">{tier.message}</p>
         </div>
         <div className="text-right flex-shrink-0 hidden md:block">
-          <p className="text-[10px] text-[var(--text-muted)]">
-            ${info.thresholds.low} low · ${info.thresholds.critical} critical
+          <p className="text-[11px] flex items-center justify-end gap-1.5">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            <span className="text-[var(--text-muted)]">Multi-sig:</span>
+            <span className="font-mono-data" style={{ color: "var(--green)" }}>
+              {info.multisig.threshold} / {info.multisig.signers}
+            </span>
           </p>
-          <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
-            Last sync: {timeAgo(info.syncedAt)}
+          <p className="text-[11px] text-[var(--text-muted)] mt-1">
+            Last sync: <span className="font-mono-data text-[var(--text-secondary)]">{timeAgo(info.syncedAt)}</span>
           </p>
         </div>
         {!info.isOwner && info.tier !== "healthy" && (
@@ -244,7 +268,7 @@ export default function TreasuryPage() {
           unit="USDC"
           accent={tier.color}
           highlight
-          sub={info.balance > 0 ? `${(info.balance / info.balance).toFixed(1)}× ${info.thresholds.low > 0 ? "the low threshold" : ""}` : undefined}
+          sub={`$${info.balance.toFixed(0)} + ${info.solBalance.toFixed(2)} SOL gas`}
         />
         <MetricCard
           label="Available"
@@ -267,38 +291,48 @@ export default function TreasuryPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
         {/* Wallet details */}
         <div className="card p-6">
-          <h2 className="text-[11px] tracking-[0.08em] uppercase text-[var(--text-muted)] font-medium mb-4">
-            Wallet details
-          </h2>
-          <div className="space-y-3">
-            <Row label="Address" value={info.walletAddress} mono />
-            <Row label="Network" value={`Solana ${info.cluster}`} />
-            <Row label="Token" value="USDC (SPL)" />
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[11px] tracking-[0.08em] uppercase text-[var(--text-muted)] font-medium">
+              Wallet details
+            </h2>
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1" style={{ background: "var(--green-dim)", color: "var(--green)", border: "1px solid var(--green-border)" }}>
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6" /></svg>
+              Hot wallet
+            </span>
+          </div>
+          <div className="space-y-3.5">
+            <AddressRow address={info.walletAddress} fullAddress={info.fullAddress} />
+            <Row
+              label="Network"
+              value={`Solana ${info.cluster}`}
+              sub={`Cluster: ${getRpcHost(info.rpcUrl)}`}
+            />
+            <Row
+              label="Token"
+              value="USDC (SPL)"
+              sub={`Mint: ${info.usdcMintShort}`}
+            />
             <Row
               label="Owner"
               value={info.isOwner ? "You" : info.ownerEmail || "—"}
+              sub="Signer with key #1"
               accent={info.isOwner ? "var(--green)" : undefined}
-            />
-            <Row
-              label="Multi-sig"
-              value={info.multisig.enabled ? `${info.multisig.threshold}/${info.multisig.signers}` : "OFF"}
-              sub={info.multisig.enabled ? `${info.multisig.threshold} of ${info.multisig.signers} signers required` : "single signer"}
-              accent={info.multisig.enabled ? "var(--green)" : "var(--text-muted)"}
             />
             <Row
               label="Low threshold"
               value={`$${info.thresholds.low.toFixed(0)}`}
-              sub="amber alert"
+              sub="amber alert · email + Slack"
             />
             <Row
               label="Critical threshold"
               value={`$${info.thresholds.critical.toFixed(0)}`}
-              sub="red alert"
+              sub="red alert · pages on-call"
             />
             <Row
               label="Auto-refill"
-              value={info.policy.autoRefill ? "ON" : "OFF"}
-              accent={info.policy.autoRefill ? "var(--green)" : "var(--text-muted)"}
+              value={info.policy.autoRefill ? "On" : "Off"}
+              sub="Configure in settings"
+              accent={info.policy.autoRefill ? "var(--green)" : undefined}
             />
           </div>
           <div className="pt-4 mt-4 border-t border-[var(--border)]">
@@ -342,23 +376,32 @@ export default function TreasuryPage() {
                 <div key={i} className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div
-                      className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ background: "linear-gradient(135deg, var(--green-light), var(--green))" }}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ background: "rgba(239,68,68,0.1)", color: "#EF4444" }}
                     >
-                      <span className="text-[10px] font-bold" style={{ color: "var(--on-green)" }}>
-                        {(p.contractors?.name || "?").split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()}
-                      </span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="17" y1="7" x2="7" y2="17" />
+                        <polyline points="17 17 7 17 7 7" />
+                      </svg>
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm text-[var(--text-primary)] truncate">
+                      <p className="text-sm text-[var(--text-primary)] truncate font-medium">
                         {p.contractors?.name || "Unknown"}
                       </p>
-                      <p className="text-[10px] text-[var(--text-muted)]">{formatDate(p.created_at)}</p>
+                      <p className="text-[10px] text-[var(--text-muted)] flex items-center gap-1 mt-0.5">
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        {formatDate(p.created_at)}
+                      </p>
                     </div>
                   </div>
-                  <span className="font-mono-data text-sm font-medium" style={{ color: "#EF4444" }}>
-                    −${Number(p.amount_usd).toFixed(2)}
-                  </span>
+                  <div className="text-right">
+                    <p className="font-mono-data text-sm font-semibold" style={{ color: "#EF4444" }}>
+                      −${Number(p.amount_usd).toFixed(2)}
+                    </p>
+                    <p className="text-[9px] text-[var(--text-muted)]">USDC</p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -560,19 +603,61 @@ function Row({
   accent?: string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <div className="text-xs text-[var(--text-muted)]">{label}</div>
-      <div className="text-right">
+    <div className="flex items-start justify-between gap-3">
+      <div className="text-sm text-[var(--text-muted)]">{label}</div>
+      <div className="text-right min-w-0">
         <p
           className={`text-sm ${mono ? "font-mono-data" : ""}`}
           style={{ color: accent || "var(--text-primary)" }}
         >
           {value}
         </p>
-        {sub && <p className="text-[10px] text-[var(--text-muted)]">{sub}</p>}
+        {sub && <p className="text-[10px] text-[var(--text-muted)] mt-0.5">{sub}</p>}
       </div>
     </div>
   );
+}
+
+function AddressRow({ address, fullAddress }: { address: string; fullAddress: string }) {
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    await navigator.clipboard.writeText(fullAddress);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div className="text-sm text-[var(--text-muted)]">Address</div>
+      <div className="flex items-center gap-1.5">
+        <p className="font-mono-data text-sm text-[var(--text-primary)]">{address}</p>
+        <button
+          onClick={copy}
+          className="p-1 rounded transition-colors"
+          style={{ color: copied ? "var(--green)" : "var(--text-muted)" }}
+          title="Copy address"
+        >
+          {copied ? (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 12 10 16 18 8" />
+            </svg>
+          ) : (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function getRpcHost(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
 }
 
 function PolicyRow({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: string; accent?: string }) {

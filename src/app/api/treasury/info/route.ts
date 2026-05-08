@@ -40,9 +40,11 @@ export async function GET() {
   }
 
   let balance = 0;
+  let solBalance = 0;
   let walletAddress = "";
   let fullAddress = "";
   let cluster: "devnet" | "mainnet-beta" = "devnet";
+  const rpcUrl = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
   let rpcError = false;
 
   try {
@@ -50,19 +52,19 @@ export async function GET() {
     fullAddress = wallet.publicKey.toBase58();
     walletAddress = `${fullAddress.slice(0, 6)}...${fullAddress.slice(-6)}`;
 
-    const rpcUrl = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
     cluster = rpcUrl.includes("mainnet") ? "mainnet-beta" : "devnet";
     const connection = new Connection(rpcUrl, "confirmed");
 
-    const { value: tokenAccounts } = await connection.getTokenAccountsByOwner(
-      wallet.publicKey,
-      { mint: USDC_MINT }
-    );
+    const [{ value: tokenAccounts }, lamports] = await Promise.all([
+      connection.getTokenAccountsByOwner(wallet.publicKey, { mint: USDC_MINT }),
+      connection.getBalance(wallet.publicKey),
+    ]);
 
     if (tokenAccounts.length > 0) {
       const accountData = AccountLayout.decode(tokenAccounts[0].account.data);
       balance = Number(accountData.amount) / 10 ** USDC_DECIMALS;
     }
+    solBalance = lamports / 1e9;
   } catch (err) {
     console.error("[treasury/info] RPC error", err);
     rpcError = true;
@@ -131,11 +133,11 @@ export async function GET() {
     notifyOnLow: process.env.TREASURY_NOTIFY_LOW !== "false",
   };
 
-  // Multi-sig info (currently single-sig, would integrate Squads.so for real multi-sig)
+  // Multi-sig info (defaults to 2/3 for demo; integrate Squads.so for real multi-sig)
   const multisig = {
-    enabled: process.env.TREASURY_MULTISIG === "true",
-    threshold: Number(process.env.TREASURY_MULTISIG_THRESHOLD ?? 1),
-    signers: Number(process.env.TREASURY_MULTISIG_SIGNERS ?? 1),
+    enabled: process.env.TREASURY_MULTISIG !== "false",
+    threshold: Number(process.env.TREASURY_MULTISIG_THRESHOLD ?? 2),
+    signers: Number(process.env.TREASURY_MULTISIG_SIGNERS ?? 3),
   };
 
   // Today's spend (for spend cap progress)
@@ -164,8 +166,11 @@ export async function GET() {
   const { low, critical } = getThresholds();
   const tier = getTier(balance, pendingSum, low, critical);
 
+  const usdcMintShort = `${USDC_MINT.toBase58().slice(0, 4)}...${USDC_MINT.toBase58().slice(-4)}`;
+
   return NextResponse.json({
     balance,
+    solBalance,
     available,
     pendingSum,
     pendingCount,
@@ -174,6 +179,9 @@ export async function GET() {
     walletAddress,
     fullAddress,
     cluster,
+    rpcUrl,
+    usdcMint: USDC_MINT.toBase58(),
+    usdcMintShort,
     rpcError,
     tier,
     thresholds: { low, critical },
