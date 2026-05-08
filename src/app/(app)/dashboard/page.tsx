@@ -40,10 +40,72 @@ interface WalletBalance {
   pendingSum?: number;
   pendingCount?: number;
   tier?: "healthy" | "low" | "critical" | "insufficient";
+  avgPayout?: number;
+  runwayCount?: number | null;
+  isOwner?: boolean;
+  thresholds?: { low: number; critical: number };
 }
 
 function getInitials(name: string) {
   return name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+}
+
+function InfoCell({
+  label,
+  value,
+  mono,
+  accent,
+  copyable,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  accent?: string;
+  copyable?: string;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!copyable) return;
+    await navigator.clipboard.writeText(copyable);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+
+  return (
+    <div className="rounded-md p-2.5" style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)" }}>
+      <p className="text-[9px] tracking-[0.08em] uppercase text-[var(--text-muted)] opacity-60 font-medium">{label}</p>
+      <div className="flex items-center justify-between gap-1 mt-1">
+        <p
+          className={`text-[12px] truncate ${mono ? "font-mono-data" : ""}`}
+          style={{ color: accent || "var(--text-primary)" }}
+        >
+          {value}
+        </p>
+        {copyable && (
+          <button
+            onClick={handleCopy}
+            className="flex-shrink-0 p-0.5 rounded transition-colors"
+            style={{ color: copied ? "var(--green)" : "var(--text-muted)" }}
+            title="Copy"
+          >
+            {copied ? (
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 12 10 16 18 8" />
+              </svg>
+            ) : (
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+            )}
+          </button>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function DashboardPage() {
@@ -146,6 +208,10 @@ function DashboardContent() {
           pendingSum: data.pendingSum,
           pendingCount: data.pendingCount,
           tier: data.tier,
+          avgPayout: data.avgPayout,
+          runwayCount: data.runwayCount,
+          isOwner: data.isOwner,
+          thresholds: data.thresholds,
         });
       } else {
         setWalletBalance({ balance: null, error: "RPC unavailable" });
@@ -383,127 +449,175 @@ function DashboardContent() {
           const balanceColor = hasError || balanceValue === null
             ? "var(--text-muted)"
             : tierMeta.color;
+          const lowThr = walletBalance?.thresholds?.low ?? 500;
+          const critThr = walletBalance?.thresholds?.critical ?? 100;
+          const maxBar = Math.max(balanceValue ?? 0, lowThr * 2, 1000);
+          const fillPct = balanceValue !== null ? Math.min(100, (balanceValue / maxBar) * 100) : 0;
+          const lowMarkerPct = (lowThr / maxBar) * 100;
+          const critMarkerPct = (critThr / maxBar) * 100;
           const pendingSum = walletBalance?.pendingSum ?? 0;
-          const pendingCount = walletBalance?.pendingCount ?? 0;
+          const usedPct = balanceValue && balanceValue > 0 ? (pendingSum / balanceValue) * 100 : 0;
+          const avgPayout = walletBalance?.avgPayout ?? 0;
+          const runwayCount = walletBalance?.runwayCount;
           return (
-            <div className="dash-hot-wallet hot-wallet-border card stat-card-hover dash-animate-in p-5 min-h-[200px] relative overflow-hidden flex flex-col" style={{ animationDelay: '300ms' }}>
+            <div className="dash-hot-wallet hot-wallet-border card stat-card-hover dash-animate-in p-6 relative overflow-hidden flex flex-col" style={{ animationDelay: '300ms' }}>
               {/* Header row */}
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-[var(--green-dim)] flex items-center justify-center flex-shrink-0 icon-glow">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
-                      <path d="M16 3H8a2 2 0 0 0-2 2v2" />
-                      <circle cx="18" cy="14" r="1.5" fill="var(--green)" />
+                  <div className="w-8 h-8 rounded-lg bg-[var(--green-dim)] flex items-center justify-center flex-shrink-0 icon-glow">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2" />
+                      <line x1="16" y1="2" x2="16" y2="6" />
+                      <line x1="8" y1="2" x2="8" y2="6" />
+                      <line x1="3" y1="10" x2="21" y2="10" />
                     </svg>
                   </div>
                   <span className="text-[11px] tracking-[0.08em] uppercase text-[var(--text-muted)] font-medium">Treasury</span>
                   {!hasError && balanceValue !== null && (
                     <span
-                      className="text-[10px] flex items-center gap-1 px-2 py-0.5 rounded-full font-medium"
-                      style={{ color: tierMeta.color, background: tierMeta.bg, border: `1px solid ${tierMeta.color}33` }}
+                      className="text-[10px] flex items-center gap-1 px-2 py-0.5 rounded-full font-medium ml-1"
+                      style={{ color: tierMeta.color, background: tierMeta.bg, border: `1px solid ${tierMeta.color}55` }}
                     >
-                      {tier === "healthy" ? "✓" : "⚠"} {tierMeta.label}
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: tierMeta.color }} />
+                      {tierMeta.label}
                     </span>
                   )}
                 </div>
-                <button
-                  onClick={fetchWalletBalance}
-                  disabled={walletLoading}
-                  className="flex items-center justify-center w-7 h-7 rounded-md transition-colors disabled:opacity-40 treasury-refresh"
-                  title="Refresh balance"
-                >
-                  <svg
-                    width="13" height="13" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                    className={walletLoading ? "animate-spin" : ""}
-                  >
-                    <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 .49-3" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Body — two columns */}
-              <div className="flex gap-6 flex-1 min-h-0">
-                {/* Left: Balance */}
-                <div className="flex-[3] flex flex-col justify-between min-w-0">
-                  <div>
-                    <p
-                      className={`text-[32px] font-mono-data font-semibold leading-none ${walletLoading ? "animate-pulse" : ""} ${!hasError && balanceValue !== null && tier === "healthy" ? "glow-green balance-glow" : ""}`}
-                      style={{ color: balanceColor }}
-                    >
-                      {hasError ? "—" : balanceValue === null ? "—" : `$${balanceValue.toFixed(2)}`}
-                      <span className="text-[14px] font-medium ml-1.5" style={{ color: "var(--text-muted)" }}>USDC</span>
-                    </p>
-                    <p className="text-[11px] text-[var(--text-muted)] mt-2">
-                      {hasError ? <span style={{ color: "#EF4444" }}>RPC error</span> : "treasury balance"}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-4 text-[11px] mt-3">
-                    <div>
-                      <span className="text-[var(--text-muted)]">${pendingSum.toFixed(2)}</span>
-                      <span className="text-[var(--text-muted)] opacity-60 ml-1">reserved</span>
-                    </div>
-                    <div className="w-px h-3 bg-[var(--border)]" />
-                    <div>
-                      <span className="text-[var(--text-muted)]">{pendingCount}</span>
-                      <span className="text-[var(--text-muted)] opacity-60 ml-1">pending</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Divider */}
-                <div className="w-px self-stretch" style={{ background: "var(--border)" }} />
-
-                {/* Right: Wallet info */}
-                <div className="flex-[2] flex flex-col justify-between min-w-0">
-                  <div className="space-y-2.5">
-                    <div>
-                      <p className="text-[10px] tracking-[0.08em] uppercase text-[var(--text-muted)] opacity-60">Address</p>
-                      <p className="font-mono-data text-[12px] text-[var(--text-secondary)] truncate mt-0.5">
-                        {walletBalance?.walletAddress || "—"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] tracking-[0.08em] uppercase text-[var(--text-muted)] opacity-60">Network</p>
-                      <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">
-                        Solana {walletBalance?.cluster || "devnet"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] tracking-[0.08em] uppercase text-[var(--text-muted)] opacity-60">Token</p>
-                      <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">USDC (SPL)</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Footer actions */}
-              <div className="flex items-center gap-3 mt-4 pt-3 border-t border-[var(--border)]">
                 <Link
                   href="/treasury"
                   className="flex items-center gap-1 text-[11px] font-medium transition-colors"
                   style={{ color: "var(--green)" }}
                 >
                   View details
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" />
                   </svg>
                 </Link>
-                {walletBalance?.fullAddress && (
+              </div>
+
+              {/* Body — two columns */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* LEFT — Balance + runway bar */}
+                <div className="flex flex-col">
+                  <p
+                    className={`text-[32px] font-mono-data font-semibold leading-none ${walletLoading ? "animate-pulse" : ""} ${!hasError && balanceValue !== null && tier === "healthy" ? "glow-green balance-glow" : ""}`}
+                    style={{ color: balanceColor }}
+                  >
+                    {hasError ? "—" : balanceValue === null ? "—" : `$${balanceValue.toFixed(2)}`}
+                    <span className="text-[14px] font-medium ml-1.5" style={{ color: "var(--text-muted)" }}>USDC</span>
+                  </p>
+                  <p className="text-[11px] text-[var(--text-muted)] mt-2">
+                    {hasError ? <span style={{ color: "#EF4444" }}>RPC error</span> : "treasury balance"}
+                  </p>
+
+                  {/* Runway use bar */}
+                  <div className="mt-5">
+                    <div className="flex items-center justify-between text-[11px] mb-2">
+                      <span className="text-[var(--text-muted)]">Runway use</span>
+                      <span className="font-mono-data" style={{ color: "var(--text-muted)" }}>{usedPct.toFixed(1)}% used</span>
+                    </div>
+                    <div className="relative h-2 rounded-full overflow-hidden" style={{ background: "var(--bg-elevated)" }}>
+                      {/* fill */}
+                      <div
+                        className="absolute inset-y-0 left-0 rounded-full"
+                        style={{
+                          width: `${fillPct}%`,
+                          background: `linear-gradient(90deg, ${tierMeta.color}, ${tierMeta.color}aa)`,
+                        }}
+                      />
+                      {/* critical threshold marker */}
+                      <div
+                        className="absolute top-0 bottom-0 w-[2px]"
+                        style={{ left: `${critMarkerPct}%`, background: "#EF4444" }}
+                      />
+                      {/* low threshold marker */}
+                      <div
+                        className="absolute top-0 bottom-0 w-[2px]"
+                        style={{ left: `${lowMarkerPct}%`, background: "#F59E0B" }}
+                      />
+                    </div>
+                    {/* Labels */}
+                    <div className="relative mt-1.5 h-3 text-[9px] font-mono-data text-[var(--text-muted)]">
+                      <span className="absolute left-0">$0</span>
+                      <span
+                        className="absolute -translate-x-1/2"
+                        style={{ left: `${critMarkerPct}%`, color: "#EF4444" }}
+                      >
+                        red ${critThr}
+                      </span>
+                      <span
+                        className="absolute -translate-x-1/2"
+                        style={{ left: `${lowMarkerPct}%`, color: "#F59E0B" }}
+                      >
+                        amber ${lowThr}
+                      </span>
+                      <span className="absolute right-0">${maxBar}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* RIGHT — info grid 2x3 */}
+                <div className="grid grid-cols-2 gap-3">
+                  <InfoCell
+                    label="Address"
+                    value={walletBalance?.walletAddress || "—"}
+                    mono
+                    copyable={walletBalance?.fullAddress}
+                  />
+                  <InfoCell
+                    label="Network"
+                    value={`Solana ${walletBalance?.cluster || "devnet"}`}
+                  />
+                  <InfoCell label="Token" value="USDC (SPL)" />
+                  <InfoCell
+                    label="Owner"
+                    value={walletBalance?.isOwner ? "You" : "—"}
+                    accent={walletBalance?.isOwner ? "var(--green)" : undefined}
+                  />
+                  <InfoCell
+                    label="Avg payout"
+                    value={avgPayout > 0 ? `$${avgPayout.toFixed(2)}` : "—"}
+                    mono
+                  />
+                  <InfoCell
+                    label="Runway"
+                    value={runwayCount !== null && runwayCount !== undefined ? `~${runwayCount} payouts` : "—"}
+                    mono
+                  />
+                </div>
+              </div>
+
+              {/* Footer actions */}
+              <div className="flex items-center justify-between mt-5 pt-4 border-t border-[var(--border)]">
+                {walletBalance?.fullAddress ? (
                   <a
                     href={`https://solscan.io/address/${walletBalance.fullAddress}?cluster=${walletBalance.cluster}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-[11px] font-medium transition-colors text-[var(--text-muted)] hover:text-[var(--green)]"
+                    className="flex items-center gap-1.5 text-[11px] font-medium transition-colors"
+                    style={{ color: "var(--green)" }}
                   >
-                    Solscan
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
                     </svg>
+                    View on Solscan
                   </a>
-                )}
+                ) : <span />}
+                <button
+                  onClick={fetchWalletBalance}
+                  disabled={walletLoading}
+                  className="flex items-center gap-1.5 text-[11px] font-medium transition-colors disabled:opacity-40 text-[var(--text-muted)] hover:text-[var(--green)]"
+                  title="Refresh balance"
+                >
+                  <svg
+                    width="11" height="11" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                    className={walletLoading ? "animate-spin" : ""}
+                  >
+                    <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 .49-3" />
+                  </svg>
+                  Refresh
+                </button>
               </div>
 
               <div
