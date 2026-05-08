@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/browser";
 import { PayzapLogo, PayzapWordmark } from "@/components/logo";
 import { HeroBoltAnimation } from "@/components/hero-bolt-animation";
+import { ScrollReveal, CountUp, useScrollReveal } from "@/components/scroll-reveal";
 
 interface LatestPayout {
   amount_usd: number;
@@ -282,16 +283,18 @@ export default function LoginPage() {
 
             {/* Stats */}
             <div className={`grid grid-cols-3 gap-6 max-w-md ${mounted ? 'animate-slide-up' : 'opacity-0'}`} style={{ animationDelay: '400ms' }}>
-              {[
-                { val: "$0.001", label: "avg. transfer fee" },
-                { val: "<2s", label: "settlement time" },
-                { val: "220+", label: "countries" },
-              ].map((s) => (
-                <div key={s.label} className="border-l-2 border-[var(--green-border)] pl-3">
-                  <div className="text-2xl font-bold font-mono-data">{s.val}</div>
-                  <div className="text-xs text-[var(--text-muted)] mt-1">{s.label}</div>
-                </div>
-              ))}
+              <div className="border-l-2 border-[var(--green-border)] pl-3">
+                <div className="text-2xl font-bold font-mono-data">$<CountUp end={0.001} decimals={3} duration={1200} /></div>
+                <div className="text-xs text-[var(--text-muted)] mt-1">avg. transfer fee</div>
+              </div>
+              <div className="border-l-2 border-[var(--green-border)] pl-3">
+                <div className="text-2xl font-bold font-mono-data">&lt;<CountUp end={2} decimals={0} duration={800} />s</div>
+                <div className="text-xs text-[var(--text-muted)] mt-1">settlement time</div>
+              </div>
+              <div className="border-l-2 border-[var(--green-border)] pl-3">
+                <div className="text-2xl font-bold font-mono-data"><CountUp end={220} decimals={0} duration={1500} />+</div>
+                <div className="text-xs text-[var(--text-muted)] mt-1">countries</div>
+              </div>
             </div>
           </div>
 
@@ -331,12 +334,14 @@ export default function LoginPage() {
       {/* ═══ THE PROBLEM ═══ */}
       <section id="problem" className="py-32 border-t border-[rgba(255,255,255,0.05)]">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="max-w-2xl mb-16">
-            <div className="font-mono-data text-xs text-[#EF4444] mb-3">{"// THE PROBLEM"}</div>
-            <h2 className="font-heading font-bold text-4xl md:text-5xl tracking-tight">
-              Paying global contractors<br />is <span className="italic" style={{ color: '#EF4444' }}>broken.</span>
-            </h2>
-          </div>
+          <ScrollReveal>
+            <div className="max-w-2xl mb-16">
+              <div className="font-mono-data text-xs text-[#EF4444] mb-3">{"// THE PROBLEM"}</div>
+              <h2 className="font-heading font-bold text-4xl md:text-5xl tracking-tight">
+                Paying global contractors<br />is <span className="italic" style={{ color: '#EF4444' }}>broken.</span>
+              </h2>
+            </div>
+          </ScrollReveal>
 
           <div className="grid md:grid-cols-3 gap-5">
             {[
@@ -358,16 +363,17 @@ export default function LoginPage() {
                 desc: "Stripe, PayPal, and Wise don't support payouts in Nigeria, Argentina, Pakistan, and dozens more.",
                 color: "#EF4444",
               },
-            ].map((card) => (
-              <div
-                key={card.label}
-                className="relative rounded-2xl p-6 border border-[rgba(255,255,255,0.06)]"
-                style={{ background: 'rgba(11,15,25,0.6)', borderTop: `2px solid ${card.color}` }}
-              >
-                <div className="text-5xl font-bold font-mono-data mb-1" style={{ color: card.color }}>{card.number}</div>
-                <div className="text-sm font-semibold text-white mb-3">{card.label}</div>
-                <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{card.desc}</p>
-              </div>
+            ].map((card, i) => (
+              <ScrollReveal key={card.label} delay={i + 1}>
+                <div
+                  className="relative rounded-2xl p-6 border border-[rgba(255,255,255,0.06)]"
+                  style={{ background: 'rgba(11,15,25,0.6)', borderTop: `2px solid ${card.color}` }}
+                >
+                  <div className="text-5xl font-bold font-mono-data mb-1" style={{ color: card.color }}>{card.number}</div>
+                  <div className="text-sm font-semibold text-white mb-3">{card.label}</div>
+                  <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{card.desc}</p>
+                </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -376,15 +382,17 @@ export default function LoginPage() {
       {/* ═══ THE SOLUTION / HOW IT WORKS ═══ */}
       <section id="how-it-works" className="py-32 border-t border-[rgba(255,255,255,0.05)]">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-6">
-            <div className="font-mono-data text-xs text-[var(--green)] mb-3">{"// THE SOLUTION"}</div>
-            <h2 className="font-heading font-bold text-4xl md:text-5xl tracking-tight">
-              Card in. <span className="text-gradient">USDC out.</span>
-            </h2>
-            <p className="text-[var(--text-secondary)] text-lg mt-4 max-w-2xl mx-auto">
-              Payzap replaces your bank wire with a Solana transfer. You pay with a card. Your contractor gets USDC. That&apos;s it.
-            </p>
-          </div>
+          <ScrollReveal>
+            <div className="text-center mb-6">
+              <div className="font-mono-data text-xs text-[var(--green)] mb-3">{"// THE SOLUTION"}</div>
+              <h2 className="font-heading font-bold text-4xl md:text-5xl tracking-tight">
+                Card in. <span className="text-gradient">USDC out.</span>
+              </h2>
+              <p className="text-[var(--text-secondary)] text-lg mt-4 max-w-2xl mx-auto">
+                Payzap replaces your bank wire with a Solana transfer. You pay with a card. Your contractor gets USDC. That&apos;s it.
+              </p>
+            </div>
+          </ScrollReveal>
 
           {/* 4-step flow */}
           <div className="relative max-w-5xl mx-auto mb-20 mt-16">
@@ -407,24 +415,27 @@ export default function LoginPage() {
                   icon: "🧾", n: 4, t: "You get proof",
                   d: "Every payout generates an on-chain Solana transaction and an automatic email receipt. Export your full payout history as CSV for your accountant.",
                 },
-              ].map((s) => (
-                <div key={s.t} className="relative text-center">
-                  <div className="relative inline-flex mb-6">
-                    <div className="w-20 h-20 rounded-3xl flex items-center justify-center shadow-glow text-3xl" style={{ background: 'linear-gradient(135deg, var(--green-light), var(--green))' }}>
-                      {s.icon}
+              ].map((s, i) => (
+                <ScrollReveal key={s.t} delay={i + 1}>
+                  <div className="relative text-center">
+                    <div className="relative inline-flex mb-6">
+                      <div className="w-20 h-20 rounded-3xl flex items-center justify-center shadow-glow text-3xl" style={{ background: 'linear-gradient(135deg, var(--green-light), var(--green))' }}>
+                        {s.icon}
+                      </div>
+                      <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-[var(--bg-base)] border-2 border-[var(--green)] flex items-center justify-center font-mono-data text-xs font-bold text-[var(--green)]">
+                        {s.n}
+                      </div>
                     </div>
-                    <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-[var(--bg-base)] border-2 border-[var(--green)] flex items-center justify-center font-mono-data text-xs font-bold text-[var(--green)]">
-                      {s.n}
-                    </div>
+                    <h3 className="font-heading text-base font-semibold mb-2">{s.t}</h3>
+                    <p className="text-sm text-[var(--text-secondary)] max-w-[220px] mx-auto leading-relaxed">{s.d}</p>
                   </div>
-                  <h3 className="font-heading text-base font-semibold mb-2">{s.t}</h3>
-                  <p className="text-sm text-[var(--text-secondary)] max-w-[220px] mx-auto leading-relaxed">{s.d}</p>
-                </div>
+                </ScrollReveal>
               ))}
             </div>
           </div>
 
           {/* Comparison table */}
+          <ScrollReveal>
           <div className="overflow-x-auto rounded-2xl border border-[rgba(255,255,255,0.07)]" style={{ background: 'rgba(11,15,25,0.6)' }}>
             <table className="w-full text-sm">
               <thead>
@@ -464,21 +475,24 @@ export default function LoginPage() {
               </tbody>
             </table>
           </div>
+          </ScrollReveal>
         </div>
       </section>
 
       {/* ═══ FEATURES ═══ */}
       <section id="features" className="py-32 border-t border-[rgba(255,255,255,0.05)]">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="max-w-2xl mb-16">
-            <div className="font-mono-data text-xs text-[var(--green)] mb-3">{"// WHY PAYZAP"}</div>
-            <h2 className="font-heading font-bold text-4xl md:text-5xl mb-4 tracking-tight">
-              Built for the <span className="text-gradient italic">speed of money</span>
-            </h2>
-            <p className="text-[var(--text-secondary)] text-lg">
-              A payment rail engineered for the next decade. Programmable, global, and frictionless.
-            </p>
-          </div>
+          <ScrollReveal>
+            <div className="max-w-2xl mb-16">
+              <div className="font-mono-data text-xs text-[var(--green)] mb-3">{"// WHY PAYZAP"}</div>
+              <h2 className="font-heading font-bold text-4xl md:text-5xl mb-4 tracking-tight">
+                Built for the <span className="text-gradient italic">speed of money</span>
+              </h2>
+              <p className="text-[var(--text-secondary)] text-lg">
+                A payment rail engineered for the next decade. Programmable, global, and frictionless.
+              </p>
+            </div>
+          </ScrollReveal>
 
           <div className="grid md:grid-cols-3 gap-5">
             {[
@@ -491,8 +505,9 @@ export default function LoginPage() {
               { icon: "📋", tag: "NEW", title: "Invoice Upload", desc: "Upload a PDF invoice and Payzap automatically extracts the contractor name and amount. One click to pay.", stat: null },
               { icon: "👥", tag: "BULK", title: "Bulk Payroll", desc: "Pay your entire team in one checkout. Select all contractors, set amounts, one Dodo payment — we handle the rest.", stat: null },
               { icon: "🔗", tag: "SELF-SERVE", title: "Contractor Onboarding", desc: "Send a unique invite link to your contractor. They add their own wallet address. No back-and-forth needed.", stat: null },
-            ].map((f) => (
-              <div key={f.title} className="feature-card group">
+            ].map((f, i) => (
+              <ScrollReveal key={f.title} delay={(i % 3) + 1}>
+              <div className="feature-card group">
                 <div className="flex items-start justify-between mb-4">
                   <div className="w-12 h-12 rounded-xl bg-[var(--green-dim)] flex items-center justify-center group-hover:bg-[rgba(0,230,160,0.15)] transition-colors text-lg">
                     {f.icon}
@@ -509,6 +524,7 @@ export default function LoginPage() {
                 <h3 className="font-heading font-semibold text-lg mb-2">{f.title}</h3>
                 <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{f.desc}</p>
               </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -517,15 +533,18 @@ export default function LoginPage() {
       {/* ═══ VS COMPETITORS ═══ */}
       <section className="py-32 border-t border-[rgba(255,255,255,0.05)]">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <div className="font-mono-data text-xs text-[var(--green)] mb-3">{"// VS THE ALTERNATIVES"}</div>
-            <h2 className="font-heading font-bold text-4xl md:text-5xl tracking-tight">
-              Why not just use<br /><span className="text-gradient">Wise or Deel?</span>
-            </h2>
-          </div>
+          <ScrollReveal>
+            <div className="text-center mb-16">
+              <div className="font-mono-data text-xs text-[var(--green)] mb-3">{"// VS THE ALTERNATIVES"}</div>
+              <h2 className="font-heading font-bold text-4xl md:text-5xl tracking-tight">
+                Why not just use<br /><span className="text-gradient">Wise or Deel?</span>
+              </h2>
+            </div>
+          </ScrollReveal>
 
           <div className="grid md:grid-cols-3 gap-5 items-stretch">
             {/* Wise/Payoneer */}
+            <ScrollReveal delay={1}>
             <div className="rounded-2xl p-6 border border-[rgba(255,255,255,0.07)]" style={{ background: 'rgba(11,15,25,0.6)' }}>
               <div className="text-lg font-heading font-semibold mb-5 text-[var(--text-secondary)]">Wise & Payoneer</div>
               <ul className="space-y-3">
@@ -543,8 +562,10 @@ export default function LoginPage() {
                 ))}
               </ul>
             </div>
+            </ScrollReveal>
 
             {/* Payzap — highlighted */}
+            <ScrollReveal delay={2}>
             <div className="rounded-2xl p-6 border-2 relative" style={{ background: 'rgba(0,230,160,0.05)', borderColor: 'var(--green)' }}>
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-xs font-mono-data font-bold" style={{ background: 'var(--green)', color: '#080C14' }}>
                 RECOMMENDED
@@ -569,8 +590,10 @@ export default function LoginPage() {
                 <svg className="group-hover:translate-x-1 transition-transform" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
               </a>
             </div>
+            </ScrollReveal>
 
             {/* Deel/Remote */}
+            <ScrollReveal delay={3}>
             <div className="rounded-2xl p-6 border border-[rgba(255,255,255,0.07)]" style={{ background: 'rgba(11,15,25,0.6)' }}>
               <div className="text-lg font-heading font-semibold mb-5 text-[var(--text-secondary)]">Deel & Remote</div>
               <ul className="space-y-3">
@@ -588,6 +611,7 @@ export default function LoginPage() {
                 ))}
               </ul>
             </div>
+            </ScrollReveal>
           </div>
         </div>
       </section>
@@ -614,12 +638,14 @@ export default function LoginPage() {
       {/* ═══ BUILT FOR INDIA ═══ */}
       <section className="py-32 border-t border-[rgba(255,255,255,0.05)]">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <div className="font-mono-data text-xs text-[var(--green)] mb-3">{"// BUILT FOR INDIA"}</div>
-            <h2 className="font-heading font-bold text-4xl md:text-5xl tracking-tight">
-              The payout tool Indian founders<br /><span className="text-gradient">actually needed.</span>
-            </h2>
-          </div>
+          <ScrollReveal>
+            <div className="text-center mb-16">
+              <div className="font-mono-data text-xs text-[var(--green)] mb-3">{"// BUILT FOR INDIA"}</div>
+              <h2 className="font-heading font-bold text-4xl md:text-5xl tracking-tight">
+                The payout tool Indian founders<br /><span className="text-gradient">actually needed.</span>
+              </h2>
+            </div>
+          </ScrollReveal>
 
           <div className="grid md:grid-cols-3 gap-8">
             {[
@@ -638,12 +664,14 @@ export default function LoginPage() {
                 title: "Pay contractors in 220+ countries",
                 desc: "Your developer in Ukraine, designer in Philippines, writer in Nigeria — one platform, same 2-second settlement everywhere.",
               },
-            ].map((col) => (
-              <div key={col.title} className="text-center">
-                <div className="text-5xl mb-5">{col.icon}</div>
-                <h3 className="font-heading font-semibold text-xl mb-3">{col.title}</h3>
-                <p className="text-[var(--text-secondary)] text-sm leading-relaxed">{col.desc}</p>
-              </div>
+            ].map((col, i) => (
+              <ScrollReveal key={col.title} delay={i + 1}>
+                <div className="text-center">
+                  <div className="text-5xl mb-5">{col.icon}</div>
+                  <h3 className="font-heading font-semibold text-xl mb-3">{col.title}</h3>
+                  <p className="text-[var(--text-secondary)] text-sm leading-relaxed">{col.desc}</p>
+                </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -652,10 +680,12 @@ export default function LoginPage() {
       {/* ═══ FAQ ═══ */}
       <section id="faq" className="py-32 border-t border-[rgba(255,255,255,0.05)]">
         <div className="max-w-3xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <div className="font-mono-data text-xs text-[var(--green)] mb-3">{"// FAQ"}</div>
-            <h2 className="font-heading font-bold text-4xl md:text-5xl tracking-tight">Common questions</h2>
-          </div>
+          <ScrollReveal>
+            <div className="text-center mb-16">
+              <div className="font-mono-data text-xs text-[var(--green)] mb-3">{"// FAQ"}</div>
+              <h2 className="font-heading font-bold text-4xl md:text-5xl tracking-tight">Common questions</h2>
+            </div>
+          </ScrollReveal>
 
           <div className="space-y-3">
             {faqs.map((faq, i) => (
@@ -692,6 +722,7 @@ export default function LoginPage() {
       {/* ═══ LOGIN / CTA ═══ */}
       <section id="login" className="py-32 border-t border-[rgba(255,255,255,0.05)]">
         <div className="max-w-5xl mx-auto px-6">
+          <ScrollReveal>
           <div className="relative glass rounded-3xl p-10 md:p-16 overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-[var(--green-dim)] to-transparent opacity-50" />
             <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full bg-[var(--green)] opacity-10 blur-3xl" />
@@ -786,6 +817,7 @@ export default function LoginPage() {
               </div>
             </div>
           </div>
+          </ScrollReveal>
         </div>
       </section>
 
