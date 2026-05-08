@@ -3,12 +3,12 @@
 import { useEffect, useState, useRef } from "react";
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
   const btnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("payzap-theme") as "light" | "dark" | null;
-    const initial = saved || "light";
+    const initial = saved || "dark";
     setTheme(initial);
     document.documentElement.setAttribute("data-theme", initial);
   }, []);

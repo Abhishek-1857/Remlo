@@ -33,9 +33,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-theme="light" suppressHydrationWarning>
+    <html lang="en" data-theme="dark" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('payzap-theme')||'light';document.documentElement.setAttribute('data-theme',t)})()` }} />
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('payzap-theme')||'dark';document.documentElement.setAttribute('data-theme',t)})()` }} />
       </head>
       <body
         className={`${inter.variable} ${syne.variable} ${jetbrainsMono.variable} antialiased`}
