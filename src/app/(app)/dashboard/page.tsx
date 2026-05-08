@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { TxHash } from "@/components/tx-hash";
 import { formatDate } from "@/lib/utils";
 import { useToast } from "@/components/toast";
+import { ScrollReveal } from "@/components/scroll-reveal";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -265,6 +266,7 @@ function DashboardContent() {
   return (
     <div className="animate-fade-in relative z-[1]">
       {/* Stat Cards — Two-row grid */}
+      <ScrollReveal>
       <div className="dash-stats-grid mb-5 stagger-children">
         {/* ── TOP ROW: 3 cards ── */}
 
@@ -508,8 +510,10 @@ function DashboardContent() {
           <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ background: "linear-gradient(90deg, #00E6A0, transparent)" }} />
         </div>
       </div>
+      </ScrollReveal>
 
       {/* Charts */}
+      <ScrollReveal>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
         {/* Area chart — spans 2 cols */}
         <div className="card p-5 lg:col-span-2">
@@ -583,9 +587,11 @@ function DashboardContent() {
           )}
         </div>
       </div>
+      </ScrollReveal>
 
       {/* Recent Payouts */}
-      <div className="card overflow-hidden flex flex-col" style={{ minHeight: "calc(100vh - 340px)" }}>
+      <ScrollReveal>
+      <div className="card overflow-hidden flex flex-col">
           <div className="px-5 py-4 border-b border-[var(--border)] flex items-start justify-between">
             <div>
               <h2 className="font-heading font-semibold text-sm text-[var(--text-primary)]">
@@ -650,7 +656,7 @@ function DashboardContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {payouts.map((p) => {
+                  {payouts.slice(0, 10).map((p) => {
                     const name = p.contractors?.name || "";
                     const initials = name ? getInitials(name) : "?";
                     return (
@@ -734,7 +740,15 @@ function DashboardContent() {
               </table>
             </div>
           )}
+          {payouts.length > 10 && (
+            <div className="px-5 py-3 border-t border-[var(--border)] text-center">
+              <Link href="/payouts" className="text-xs font-medium text-[var(--green)] hover:underline">
+                View all {payouts.length} payouts →
+              </Link>
+            </div>
+          )}
       </div>
+      </ScrollReveal>
     </div>
   );
 }

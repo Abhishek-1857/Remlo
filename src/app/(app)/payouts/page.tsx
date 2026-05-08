@@ -32,6 +32,8 @@ export default function PayoutsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [copiedTx, setCopiedTx] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [page, setPage] = useState(1);
+  const perPage = 15;
 
   useEffect(() => {
     fetch("/api/payouts")
@@ -66,6 +68,10 @@ export default function PayoutsPage() {
     .filter((p) => (p.contractors?.name || "").toLowerCase().includes(search.toLowerCase()))
     .filter((p) => filter === "all" ? true : p.status === filter);
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+  const currentPage = Math.min(page, totalPages);
+  const paginated = filtered.slice((currentPage - 1) * perPage, currentPage * perPage);
+
   const totalDone = payouts
     .filter((p) => p.status === "done")
     .reduce((s, p) => s + Number(p.amount_usd), 0);
@@ -91,7 +97,7 @@ export default function PayoutsPage() {
             type="text"
             placeholder="Search by contractor..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full pl-9 pr-3 py-2 text-sm input-base search-glow"
           />
         </div>
@@ -101,7 +107,7 @@ export default function PayoutsPage() {
           {filterOptions.map((opt) => (
             <button
               key={opt.value}
-              onClick={() => setFilter(opt.value)}
+              onClick={() => { setFilter(opt.value); setPage(1); }}
               className="px-3 py-1 text-xs rounded-md font-medium transition-all"
               style={
                 filter === opt.value
@@ -164,7 +170,7 @@ export default function PayoutsPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((p) => {
+              {paginated.map((p) => {
                 const name = p.contractors?.name || "Unknown";
                 const initials = getInitials(name);
                 const isExpanded = expandedId === p.id;
@@ -291,6 +297,58 @@ export default function PayoutsPage() {
               })}
             </tbody>
           </table>
+        )}
+
+        {/* Pagination */}
+        {filtered.length > perPage && (
+          <div className="flex items-center justify-between px-5 py-3 border-t border-[var(--border)]">
+            <p className="text-xs text-[var(--text-muted)]">
+              Showing {(currentPage - 1) * perPage + 1}–{Math.min(currentPage * perPage, filtered.length)} of {filtered.length}
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-2.5 py-1 text-xs rounded-md font-medium transition-colors disabled:opacity-30"
+                style={{ color: "var(--text-muted)", border: "1px solid var(--border)" }}
+              >
+                Previous
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                .reduce<(number | "...")[]>((acc, p, i, arr) => {
+                  if (i > 0 && p - (arr[i - 1]) > 1) acc.push("...");
+                  acc.push(p);
+                  return acc;
+                }, [])
+                .map((p, i) =>
+                  p === "..." ? (
+                    <span key={`dots-${i}`} className="px-1 text-xs text-[var(--text-muted)]">...</span>
+                  ) : (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p as number)}
+                      className="w-8 h-8 text-xs rounded-md font-medium transition-all"
+                      style={
+                        p === currentPage
+                          ? { background: "var(--green)", color: "#080C14" }
+                          : { color: "var(--text-muted)", border: "1px solid var(--border)" }
+                      }
+                    >
+                      {p}
+                    </button>
+                  )
+                )}
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-2.5 py-1 text-xs rounded-md font-medium transition-colors disabled:opacity-30"
+                style={{ color: "var(--text-muted)", border: "1px solid var(--border)" }}
+              >
+                Next
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>
