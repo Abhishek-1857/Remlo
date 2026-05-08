@@ -7,7 +7,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { TxHash } from "@/components/tx-hash";
 import { formatDate } from "@/lib/utils";
 import { useToast } from "@/components/toast";
-import { ScrollReveal } from "@/components/scroll-reveal";
+import { ScrollReveal, CountUp } from "@/components/scroll-reveal";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -264,24 +264,25 @@ function DashboardContent() {
   const donePct = totalPayouts > 0 ? Math.round((doneCount / totalPayouts) * 100) : 0;
 
   return (
-    <div className="animate-fade-in relative z-[1]">
+    <div className="animate-fade-in relative z-[1] dash-bg">
+      <div className="dash-orb" />
       {/* Stat Cards — Two-row grid */}
       <ScrollReveal>
       <div className="dash-stats-grid mb-5 stagger-children">
         {/* ── TOP ROW: 3 cards ── */}
 
         {/* Total Paid Out */}
-        <div className="card p-6 min-h-[130px] flex flex-col justify-between relative overflow-hidden">
+        <div className="card stat-card-hover dash-animate-in p-6 min-h-[130px] flex flex-col justify-between relative overflow-hidden">
           <div className="flex items-start justify-between mb-3">
             <span className="text-[11px] tracking-[0.08em] uppercase text-[var(--text-muted)] font-medium">Total Paid Out</span>
-            <div className="w-8 h-8 rounded-lg bg-[var(--green-dim)] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[var(--green-dim)] flex items-center justify-center icon-glow">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" />
               </svg>
             </div>
           </div>
           <p className="text-[28px] font-mono-data font-semibold text-[var(--green)] leading-none glow-green">
-            ${totalPaid.toFixed(2)}
+            <CountUp end={totalPaid} prefix="$" decimals={2} duration={800} />
           </p>
           <div className="flex items-center justify-between mt-3">
             <p className="text-[11px] text-[var(--text-muted)]">all time</p>
@@ -298,17 +299,17 @@ function DashboardContent() {
         </div>
 
         {/* Active Contractors */}
-        <div className="card p-6 min-h-[130px] flex flex-col justify-between">
+        <div className="card stat-card-hover dash-animate-in p-6 min-h-[130px] flex flex-col justify-between" style={{ animationDelay: '100ms' }}>
           <div className="flex items-start justify-between mb-3">
             <span className="text-[11px] tracking-[0.08em] uppercase text-[var(--text-muted)] font-medium">Active Contractors</span>
-            <div className="w-8 h-8 rounded-lg bg-[var(--green-dim)] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[var(--green-dim)] flex items-center justify-center icon-glow">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
               </svg>
             </div>
           </div>
-          <p className="text-[28px] font-mono-data font-semibold text-[var(--text-primary)] leading-none">{contractorCount}</p>
+          <p className="text-[28px] font-mono-data font-semibold text-[var(--text-primary)] leading-none"><CountUp end={contractorCount} duration={800} /></p>
           <div className="flex items-center justify-between mt-3">
             <p className="text-[11px] text-[var(--text-muted)]">registered wallets</p>
             {newContractorsThisWeek > 0 && (
@@ -323,17 +324,17 @@ function DashboardContent() {
         </div>
 
         {/* This Month */}
-        <div className="card p-6 min-h-[130px] flex flex-col justify-between">
+        <div className="card stat-card-hover dash-animate-in p-6 min-h-[130px] flex flex-col justify-between" style={{ animationDelay: '200ms' }}>
           <div className="flex items-start justify-between mb-3">
             <span className="text-[11px] tracking-[0.08em] uppercase text-[var(--text-muted)] font-medium">This Month</span>
-            <div className="w-8 h-8 rounded-lg bg-[var(--green-dim)] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[var(--green-dim)] flex items-center justify-center icon-glow">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" />
                 <line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
               </svg>
             </div>
           </div>
-          <p className="text-[28px] font-mono-data font-semibold text-[var(--text-primary)] leading-none">{thisMonth}</p>
+          <p className="text-[28px] font-mono-data font-semibold text-[var(--text-primary)] leading-none"><CountUp end={thisMonth} duration={800} /></p>
           <div className="flex items-center justify-between mt-3">
             <p className="text-[11px] text-[var(--text-muted)]">payouts</p>
             <span className={`trend-pill ${monthDiff < 0 ? "trend-pill-red" : ""}`}>
@@ -359,12 +360,12 @@ function DashboardContent() {
             ? "var(--text-muted)"
             : isLow ? "#F59E0B" : "var(--green)";
           return (
-            <div className="dash-hot-wallet card p-6 min-h-[130px] relative overflow-hidden">
+            <div className="dash-hot-wallet hot-wallet-border card stat-card-hover dash-animate-in p-6 min-h-[130px] relative overflow-hidden" style={{ animationDelay: '300ms' }}>
               <div className="flex gap-6 h-full">
                 {/* Left section (60%) */}
                 <div className="flex-[3] flex flex-col justify-between min-w-0">
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 rounded-lg bg-[var(--green-dim)] flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 rounded-lg bg-[var(--green-dim)] flex items-center justify-center flex-shrink-0 icon-glow">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
                         <path d="M16 3H8a2 2 0 0 0-2 2v2" />
@@ -375,7 +376,7 @@ function DashboardContent() {
                   </div>
 
                   <p
-                    className={`text-[28px] font-mono-data font-semibold leading-none ${walletLoading ? "animate-pulse" : ""} ${!hasError && balanceValue !== null && !isLow ? "glow-green" : ""}`}
+                    className={`text-[28px] font-mono-data font-semibold leading-none ${walletLoading ? "animate-pulse" : ""} ${!hasError && balanceValue !== null && !isLow ? "glow-green balance-glow" : ""}`}
                     style={{ color: balanceColor }}
                   >
                     {hasError ? "—" : balanceValue === null ? "—" : `$${balanceValue.toFixed(2)}`}
@@ -464,10 +465,10 @@ function DashboardContent() {
         })()}
 
         {/* Fees Saved — spans 1 column */}
-        <div className="dash-fees-saved card p-6 min-h-[130px] flex flex-col justify-between relative overflow-hidden">
+        <div className="dash-fees-saved card stat-card-hover dash-animate-in p-6 min-h-[130px] flex flex-col justify-between relative overflow-hidden" style={{ animationDelay: '400ms' }}>
           <div className="flex items-start justify-between mb-3">
             <span className="text-[11px] tracking-[0.08em] uppercase text-[var(--text-muted)] font-medium">Fees Saved</span>
-            <div className="w-8 h-8 rounded-lg bg-[var(--green-dim)] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[var(--green-dim)] flex items-center justify-center icon-glow">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />
                 <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" />
@@ -479,7 +480,7 @@ function DashboardContent() {
             className={`text-[28px] font-mono-data font-semibold leading-none ${feesSaved > 0 ? "glow-green" : ""}`}
             style={{ color: feesSaved > 0 ? "var(--green)" : "var(--text-muted)" }}
           >
-            ${feesSaved.toFixed(0)}
+            <CountUp end={feesSaved} prefix="$" decimals={0} duration={800} />
           </p>
           <div className="mt-3 space-y-1">
             <p className="text-[11px] text-[var(--text-muted)]">
@@ -496,7 +497,7 @@ function DashboardContent() {
             {settledPayouts.length > 0 && (
               <div className="mt-2 pt-2" style={{ borderTop: "1px solid var(--border)" }}>
                 <p className="text-[11px] text-[var(--text-muted)]">
-                  <span style={{ color: "var(--green)" }}>⚡ {settledPayouts.length} payouts in {totalSettlementSec.toFixed(1)}s</span>
+                  <span className="lightning-pulse" style={{ color: "var(--green)" }}>⚡ {settledPayouts.length} payouts in {totalSettlementSec.toFixed(1)}s</span>
                 </p>
                 <p className="text-[11px] text-[var(--text-muted)]">
                   Avg: <span className="font-mono-data" style={{ color: "var(--green)" }}>{(avgSettlementMs! / 1000).toFixed(1)}s</span> per payout
@@ -548,7 +549,7 @@ function DashboardContent() {
                 formatter={(v) => [`$${Number(v).toFixed(2)}`, "Paid out"]}
                 labelStyle={{ color: "#4A5A74", marginBottom: 4 }}
               />
-              <Area type="monotone" dataKey="amount" stroke="#00E6A0" strokeWidth={2} fill="url(#greenGrad)" dot={false} activeDot={{ r: 4, fill: "#00E6A0", strokeWidth: 0 }} />
+              <Area type="monotone" dataKey="amount" stroke="#00E6A0" strokeWidth={2} fill="url(#greenGrad)" dot={false} activeDot={{ r: 4, fill: "#00E6A0", strokeWidth: 0 }} animationDuration={1200} animationBegin={400} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -564,7 +565,7 @@ function DashboardContent() {
             <div className="relative">
               <ResponsiveContainer width="100%" height={180}>
                 <PieChart>
-                  <Pie data={donutData} cx="50%" cy="45%" innerRadius={44} outerRadius={70} paddingAngle={3} dataKey="value" strokeWidth={0}>
+                  <Pie data={donutData} cx="50%" cy="45%" innerRadius={44} outerRadius={70} paddingAngle={3} dataKey="value" strokeWidth={0} animationDuration={800} animationBegin={800}>
                     {donutData.map((entry) => (
                       <Cell key={entry.name} fill={donutColors[entry.name] || "#6366F1"} />
                     ))}

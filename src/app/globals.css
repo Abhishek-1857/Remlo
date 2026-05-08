@@ -291,13 +291,30 @@ body::before {
 
 .table-row {
   border-bottom: 1px solid var(--border);
-  transition: background 150ms;
+  transition: background 150ms, transform 100ms;
+  position: relative;
+}
+.table-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--green);
+  transform: scaleY(0);
+  transition: transform 150ms ease-out;
+  border-radius: 0 2px 2px 0;
 }
 .table-row:nth-child(even) {
   background: rgba(255, 255, 255, 0.015);
 }
 .table-row:hover {
-  background: rgba(0, 217, 126, 0.04);
+  background: rgba(0,230,160,0.04);
+  transform: translateX(2px);
+}
+.table-row:hover::before {
+  transform: scaleY(1);
 }
 .table-row:last-child {
   border-bottom: none;
@@ -381,6 +398,98 @@ body::before {
 .scroll-hidden.scroll-delay-6 { transition-delay: 600ms; }
 .scroll-hidden.scroll-delay-7 { transition-delay: 700ms; }
 .scroll-hidden.scroll-delay-8 { transition-delay: 800ms; }
+
+/* Dashboard visual polish */
+.dash-bg {
+  position: relative;
+  overflow: hidden;
+}
+.dash-bg::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, #0E1420 1px, transparent 1px);
+  background-size: 24px 24px;
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dash-orb {
+  position: fixed;
+  top: -100px;
+  right: -100px;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(0,230,160,0.07) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: float 20s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.stat-card-hover {
+  transition: transform 150ms ease-out, box-shadow 150ms ease-out, border-color 150ms ease-out;
+}
+.stat-card-hover:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0,230,160,0.35);
+  box-shadow:
+    0 4px 16px rgba(0,0,0,0.4),
+    0 0 0 1px rgba(0,230,160,0.1) inset,
+    0 0 40px rgba(0,230,160,0.12);
+}
+
+.icon-glow {
+  filter: drop-shadow(0 0 8px rgba(0,230,160,0.3));
+}
+
+.balance-glow {
+  animation: balance-pulse 3s ease-in-out infinite;
+}
+@keyframes balance-pulse {
+  0%, 100% { text-shadow: 0 0 20px rgba(0,230,160,0.3); }
+  50% { text-shadow: 0 0 35px rgba(0,230,160,0.5); }
+}
+
+.lightning-pulse {
+  display: inline-block;
+  animation: lightning-beat 2s ease-in-out infinite;
+}
+@keyframes lightning-beat {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.15); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.dash-animate-in {
+  animation: fade-in-up 400ms ease-out both;
+}
+
+/* Hot wallet animated border */
+.hot-wallet-border {
+  position: relative;
+}
+.hot-wallet-border::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(0,230,160,0.4), transparent 60%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  animation: border-shimmer 4s ease-in-out infinite;
+}
+@keyframes border-shimmer {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
 
 .animate-float { animation: float 6s ease-in-out infinite; }
 .animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
