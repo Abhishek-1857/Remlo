@@ -1,14 +1,29 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatDate } from "@/lib/utils";
 import { useToast } from "@/components/toast";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 interface RecentPayout {
   amount_usd: number;
   created_at: string;
   contractors: { name: string } | null;
+}
+
+interface OutflowPoint {
+  date: string;
+  amount: number;
+}
+
+interface Policy {
+  spendCapDaily: number;
+  txLimit: number;
+  autoRefill: boolean;
+  notifyOnPayout: boolean;
+  notifyOnLow: boolean;
 }
 
 interface TreasuryInfo {
@@ -27,6 +42,9 @@ interface TreasuryInfo {
   isOwner: boolean;
   ownerEmail: string | null;
   recentPayouts: RecentPayout[];
+  outflowChart: OutflowPoint[];
+  policy: Policy;
+  syncedAt: string;
 }
 
 const tierConfig = {
@@ -63,6 +81,18 @@ const tierConfig = {
     message: "Balance cannot cover pending payouts. Top up immediately.",
   },
 };
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
+}
 
 export default function TreasuryPage() {
   const [info, setInfo] = useState<TreasuryInfo | null>(null);
@@ -120,7 +150,7 @@ export default function TreasuryPage() {
   const tier = tierConfig[info.tier];
 
   return (
-    <div className="animate-fade-in relative z-[1] max-w-6xl mx-auto">
+    <div className="animate-fade-in relative z-[1] max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
         <div>
@@ -133,8 +163,7 @@ export default function TreasuryPage() {
           <button
             onClick={load}
             disabled={refreshing}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs rounded-lg font-medium transition-colors"
-            style={{ border: "1px solid var(--border-bright)", color: "var(--text-muted)" }}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs rounded-lg font-medium transition-colors btn-export"
           >
             <svg
               width="13" height="13" viewBox="0 0 24 24" fill="none"
@@ -176,14 +205,25 @@ export default function TreasuryPage() {
         <span className="text-xl flex-shrink-0">{tier.icon}</span>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold" style={{ color: tier.color }}>
-            {tier.label}
+            {tier.label}{" "}
+            <span className="text-[var(--text-muted)] font-normal text-xs ml-1">
+              · ALL SYSTEMS
+            </span>
           </p>
           <p className="text-xs text-[var(--text-secondary)] mt-0.5">{tier.message}</p>
+        </div>
+        <div className="text-right flex-shrink-0 hidden md:block">
+          <p className="text-[10px] text-[var(--text-muted)]">
+            ${info.thresholds.low} low · ${info.thresholds.critical} critical
+          </p>
+          <p className="text-[10px] text-[var(--text-muted)] opacity-70 mt-0.5">
+            Last sync: {timeAgo(info.syncedAt)}
+          </p>
         </div>
         {!info.isOwner && info.tier !== "healthy" && (
           <button
             onClick={() => setShowRequestModal(true)}
-            className="text-xs font-semibold whitespace-nowrap px-3 py-1.5 rounded-md"
+            className="text-xs font-semibold whitespace-nowrap px-3 py-1.5 rounded-md flex-shrink-0"
             style={{ background: tier.color, color: "var(--on-green)" }}
           >
             Request refill →
@@ -199,6 +239,7 @@ export default function TreasuryPage() {
           unit="USDC"
           accent={tier.color}
           highlight
+          sub={info.balance > 0 ? `${(info.balance / info.balance).toFixed(1)}× ${info.thresholds.low > 0 ? "the low threshold" : ""}` : undefined}
         />
         <MetricCard
           label="Available"
@@ -217,8 +258,8 @@ export default function TreasuryPage() {
         />
       </div>
 
-      {/* Two-column layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      {/* Two-column layout: wallet details + recent outflows */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
         {/* Wallet details */}
         <div className="card p-6">
           <h2 className="text-[11px] tracking-[0.08em] uppercase text-[var(--text-muted)] font-medium mb-4">
@@ -243,6 +284,11 @@ export default function TreasuryPage() {
               value={`$${info.thresholds.critical.toFixed(0)}`}
               sub="red alert"
             />
+            <Row
+              label="Auto-refill"
+              value={info.policy.autoRefill ? "ON" : "OFF"}
+              accent={info.policy.autoRefill ? "var(--green)" : "var(--text-muted)"}
+            />
           </div>
           <div className="pt-4 mt-4 border-t border-[var(--border)]">
             <a
@@ -260,30 +306,134 @@ export default function TreasuryPage() {
           </div>
         </div>
 
-        {/* Recent activity */}
+        {/* Recent outflows */}
         <div className="card p-6">
-          <h2 className="text-[11px] tracking-[0.08em] uppercase text-[var(--text-muted)] font-medium mb-4">
-            Recent outflows
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[11px] tracking-[0.08em] uppercase text-[var(--text-muted)] font-medium">
+              Recent outflows
+            </h2>
+            <Link
+              href="/payouts"
+              className="text-[11px] font-medium flex items-center gap-1"
+              style={{ color: "var(--green)" }}
+            >
+              View all
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+              </svg>
+            </Link>
+          </div>
           {info.recentPayouts.length === 0 ? (
             <p className="text-sm text-[var(--text-muted)]">No payouts yet.</p>
           ) : (
             <div className="space-y-3">
               {info.recentPayouts.map((p, i) => (
                 <div key={i} className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-sm text-[var(--text-primary)] truncate">
-                      {p.contractors?.name || "Unknown"}
-                    </p>
-                    <p className="text-[11px] text-[var(--text-muted)]">{formatDate(p.created_at)}</p>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div
+                      className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{ background: "linear-gradient(135deg, var(--green-light), var(--green))" }}
+                    >
+                      <span className="text-[10px] font-bold" style={{ color: "var(--on-green)" }}>
+                        {(p.contractors?.name || "?").split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm text-[var(--text-primary)] truncate">
+                        {p.contractors?.name || "Unknown"}
+                      </p>
+                      <p className="text-[10px] text-[var(--text-muted)]">{formatDate(p.created_at)}</p>
+                    </div>
                   </div>
-                  <span className="font-mono-data text-sm" style={{ color: "var(--green)" }}>
+                  <span className="font-mono-data text-sm font-medium" style={{ color: "#EF4444" }}>
                     −${Number(p.amount_usd).toFixed(2)}
                   </span>
                 </div>
               ))}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Bottom row: Outflow chart + Alerts & policy */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* Outflow chart - 2 cols */}
+        <div className="card p-6 lg:col-span-2">
+          <h2 className="text-[11px] tracking-[0.08em] uppercase text-[var(--text-muted)] font-medium mb-4">
+            Outflow · Last 30 days
+          </h2>
+          <div className="h-[200px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={info.outflowChart} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="outflowGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#00E6A0" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="#00E6A0" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fill: "var(--text-muted)", fontSize: 10 }}
+                  tickFormatter={(d) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  axisLine={false}
+                  tickLine={false}
+                  interval={Math.floor(info.outflowChart.length / 6)}
+                />
+                <YAxis
+                  tick={{ fill: "var(--text-muted)", fontSize: 10 }}
+                  tickFormatter={(v) => `$${v}`}
+                  axisLine={false}
+                  tickLine={false}
+                  width={45}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--bg-surface)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 8,
+                    fontSize: 12,
+                  }}
+                  labelStyle={{ color: "var(--text-muted)" }}
+                  formatter={(v) => [`$${Number(v).toFixed(2)}`, "Outflow"]}
+                  cursor={{ stroke: "var(--green)", strokeOpacity: 0.3 }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="amount"
+                  stroke="#00E6A0"
+                  strokeWidth={2}
+                  fill="url(#outflowGradient)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Alerts & Policy */}
+        <div className="card p-6">
+          <h2 className="text-[11px] tracking-[0.08em] uppercase text-[var(--text-muted)] font-medium mb-4">
+            Alerts &amp; policy
+          </h2>
+          <div className="space-y-4">
+            <PolicyRow
+              icon={<DollarSign />}
+              label="Spend cap"
+              value={`$${info.policy.spendCapDaily.toLocaleString()} / day`}
+            />
+            <PolicyRow
+              icon={<ArrowsCircle />}
+              label="Single tx limit"
+              value={`$${info.policy.txLimit.toLocaleString()}`}
+            />
+            <div>
+              <p className="text-[11px] text-[var(--text-muted)] mb-2">Notify on:</p>
+              <div className="space-y-1.5">
+                <NotifyItem enabled={info.policy.notifyOnPayout} label="Each successful payout" />
+                <NotifyItem enabled={info.policy.notifyOnLow} label="Low balance" />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -369,6 +519,62 @@ function Row({
         {sub && <p className="text-[10px] text-[var(--text-muted)]">{sub}</p>}
       </div>
     </div>
+  );
+}
+
+function PolicyRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="w-8 h-8 rounded-lg bg-[var(--green-dim)] flex items-center justify-center flex-shrink-0" style={{ color: "var(--green)" }}>
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[11px] text-[var(--text-muted)]">{label}</p>
+        <p className="text-sm font-medium text-[var(--text-primary)] font-mono-data">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function NotifyItem({ enabled, label }: { enabled: boolean; label: string }) {
+  return (
+    <div className="flex items-center gap-2 text-xs">
+      <span
+        className="w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0"
+        style={{
+          background: enabled ? "var(--green)" : "transparent",
+          border: enabled ? "none" : "1px solid var(--border)",
+        }}
+      >
+        {enabled && (
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--on-green)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 12 10 16 18 8" />
+          </svg>
+        )}
+      </span>
+      <span className={enabled ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] line-through"}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function DollarSign() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="1" x2="12" y2="23" />
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+    </svg>
+  );
+}
+
+function ArrowsCircle() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="23 4 23 10 17 10" />
+      <polyline points="1 20 1 14 7 14" />
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+    </svg>
   );
 }
 

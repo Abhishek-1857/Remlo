@@ -97,7 +97,39 @@ export async function GET() {
     .select("created_at, amount_usd, contractors(name)")
     .eq("status", "done")
     .order("created_at", { ascending: false })
-    .limit(5);
+    .limit(8);
+
+  // Outflow chart: last 30 days, grouped by day
+  const since = new Date();
+  since.setDate(since.getDate() - 30);
+  const { data: chartRows } = await supabase
+    .from("payouts")
+    .select("created_at, amount_usd")
+    .eq("status", "done")
+    .gte("created_at", since.toISOString())
+    .order("created_at", { ascending: true });
+
+  const dailyOutflow: Record<string, number> = {};
+  for (let i = 0; i < 30; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - (29 - i));
+    const key = d.toISOString().split("T")[0];
+    dailyOutflow[key] = 0;
+  }
+  for (const row of chartRows ?? []) {
+    const key = new Date(row.created_at).toISOString().split("T")[0];
+    if (key in dailyOutflow) dailyOutflow[key] += Number(row.amount_usd);
+  }
+  const outflowChart = Object.entries(dailyOutflow).map(([date, amount]) => ({ date, amount }));
+
+  // Policy from env (with defaults)
+  const policy = {
+    spendCapDaily: Number(process.env.TREASURY_SPEND_CAP_DAILY_USD ?? 1000),
+    txLimit: Number(process.env.TREASURY_TX_LIMIT_USD ?? 300),
+    autoRefill: process.env.TREASURY_AUTO_REFILL === "true",
+    notifyOnPayout: process.env.TREASURY_NOTIFY_PAYOUT !== "false",
+    notifyOnLow: process.env.TREASURY_NOTIFY_LOW !== "false",
+  };
 
   const { low, critical } = getThresholds();
   const tier = getTier(balance, pendingSum, low, critical);
@@ -118,6 +150,9 @@ export async function GET() {
     isOwner,
     ownerEmail: isOwner ? ownerEmail : maskEmail(ownerEmail),
     recentPayouts: lastDone ?? [],
+    outflowChart,
+    policy,
+    syncedAt: new Date().toISOString(),
   });
 }
 

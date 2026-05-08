@@ -1082,6 +1082,14 @@ tr:hover .row-arrow {
 }
 
 /* Theme toggle button */
+.treasury-refresh {
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+}
+.treasury-refresh:hover:not(:disabled) {
+  color: var(--green);
+}
+
 .btn-export {
   border: 1px solid var(--border-bright);
   color: var(--text-muted);
