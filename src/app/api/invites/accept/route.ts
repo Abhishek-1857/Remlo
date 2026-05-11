@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     .update({ used: true, contractor_id: contractor.id })
     .eq("id", invite.id);
 
-  const appUrl = process.env.NEXT_PUBLIC_URL || "https://paypipe.vercel.app";
+  const appUrl = process.env.NEXT_PUBLIC_URL || "https://payzap-app.vercel.app";
   sendContractorOnboardedEmail({
     founderEmail: invite.owner_email,
     contractorName: name.trim(),
