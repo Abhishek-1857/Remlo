@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/toast";
 
@@ -33,6 +33,8 @@ interface ScheduledPayout {
   payments: ScheduledPayment[];
 }
 
+type FilterTab = "all" | "due" | "upcoming" | "paused";
+
 function getInitials(name: string) {
   return name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 }
@@ -43,30 +45,41 @@ function getOrdinal(n: number) {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-function getStatusInfo(schedule: ScheduledPayout): { label: string; color: string; bg: string; pulse: boolean } {
+function truncateWallet(wallet: string) {
+  if (!wallet || wallet.length < 8) return wallet;
+  return wallet.slice(0, 4) + "..." + wallet.slice(-4);
+}
+
+function getStatusInfo(schedule: ScheduledPayout): { label: string; color: string; bg: string; border: string; isDue: boolean; isOverdue: boolean } {
   if (schedule.status === "paused") {
-    return { label: "PAUSED", color: "var(--text-muted)", bg: "var(--bg-elevated)", pulse: false };
+    return { label: "PAUSED", color: "var(--text-muted)", bg: "var(--bg-elevated)", border: "var(--border)", isDue: false, isOverdue: false };
   }
 
   const today = new Date().toISOString().split("T")[0];
   const due = schedule.next_due_date;
 
   if (due === today) {
-    return { label: "DUE TODAY", color: "#FFAD33", bg: "rgba(255,173,51,0.12)", pulse: true };
+    return { label: "DUE TODAY", color: "#FFAD33", bg: "rgba(255,173,51,0.15)", border: "rgba(255,173,51,0.3)", isDue: true, isOverdue: false };
   }
   if (due < today) {
-    return { label: "OVERDUE", color: "#FF5C5C", bg: "rgba(255,92,92,0.12)", pulse: false };
+    return { label: "OVERDUE", color: "#FF5C5C", bg: "rgba(255,92,92,0.15)", border: "rgba(255,92,92,0.3)", isDue: false, isOverdue: true };
   }
 
   const dueDate = new Date(due + "T00:00:00");
-  const formatted = dueDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  return { label: `Next: ${formatted}`, color: "var(--text-muted)", bg: "var(--bg-elevated)", pulse: false };
+  const formatted = dueDate.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
+  return { label: `NEXT: ${formatted}`, color: "var(--text-muted)", bg: "var(--bg-elevated)", border: "var(--border)", isDue: false, isOverdue: false };
 }
 
 function isDueOrOverdue(schedule: ScheduledPayout) {
   if (schedule.status !== "active") return false;
   const today = new Date().toISOString().split("T")[0];
   return schedule.next_due_date <= today;
+}
+
+function getFilterCategory(schedule: ScheduledPayout): FilterTab {
+  if (schedule.status === "paused") return "paused";
+  if (isDueOrOverdue(schedule)) return "due";
+  return "upcoming";
 }
 
 export default function ScheduledPayoutsPage() {
@@ -76,16 +89,28 @@ export default function ScheduledPayoutsPage() {
   const [contractors, setContractors] = useState<Contractor[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [filter, setFilter] = useState<FilterTab>("all");
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const [formContractorId, setFormContractorId] = useState("");
   const [formAmount, setFormAmount] = useState("");
   const [formDay, setFormDay] = useState("1");
   const [showForm, setShowForm] = useState(false);
-  const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    function onOutsideClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenu(null);
+      }
+    }
+    document.addEventListener("mousedown", onOutsideClick);
+    return () => document.removeEventListener("mousedown", onOutsideClick);
   }, []);
 
   async function fetchData() {
@@ -146,8 +171,11 @@ export default function ScheduledPayoutsPage() {
         body: JSON.stringify({ action }),
       });
       if (res.ok) {
-        toast(action === "cancel" ? "Schedule cancelled" : action === "pause" ? "Schedule paused" : "Schedule resumed", "success");
-        setConfirmCancel(null);
+        toast(
+          action === "cancel" ? "Schedule cancelled" : action === "pause" ? "Schedule paused" : "Schedule resumed",
+          "success"
+        );
+        setOpenMenu(null);
         fetchData();
       } else {
         toast("Action failed", "error");
@@ -170,6 +198,16 @@ export default function ScheduledPayoutsPage() {
   const activeSchedules = schedules.filter((s) => s.status === "active");
   const totalMonthly = activeSchedules.reduce((sum, s) => sum + Number(s.amount_usd), 0);
   const dueCount = activeSchedules.filter(isDueOrOverdue).length;
+  const totalPaid = schedules.reduce((sum, s) => {
+    const paid = s.payments.filter((p) => p.status === "paid");
+    return sum + paid.reduce((ps) => ps + Number(s.amount_usd), 0);
+  }, 0);
+
+  const filtered = filter === "all"
+    ? schedules
+    : schedules.filter((s) => getFilterCategory(s) === filter);
+
+  const currentMonth = new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
   if (loading) {
     return (
@@ -183,25 +221,38 @@ export default function ScheduledPayoutsPage() {
   return (
     <div className="animate-fade-in">
       <div className="flex gap-8 items-start">
-        {/* LEFT COLUMN */}
+        {/* ── LEFT COLUMN ── */}
         <div className="flex-[11_11_0%] min-w-0">
-          {/* Header + New button */}
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <p className="text-sm text-[var(--text-muted)]">
-                Set it once, get reminded every month
-              </p>
+
+          {/* Hero Header */}
+          <div className="mb-6">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.15em] mb-2 flex items-center gap-1.5" style={{ color: "var(--green)" }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--green)" }} />
+              Recurring Payouts
+            </p>
+            <div className="flex items-end justify-between">
+              <div>
+                <h1 className="font-heading text-3xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
+                  Scheduled <span style={{ color: "var(--green)" }}>Payouts</span>
+                </h1>
+                <p className="text-sm max-w-md" style={{ color: "var(--text-muted)" }}>
+                  Set it once, get reminded every month. Approve with a tap — USDC settles to your contractors on Solana within seconds.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowForm(!showForm)}
+                className="text-sm px-5 py-2.5 rounded-full font-semibold flex items-center gap-2 transition-all"
+                style={{ background: "var(--green)", color: "#080C14", boxShadow: "0 0 20px rgba(0,230,160,0.3)" }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                New schedule
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+                </svg>
+              </button>
             </div>
-            <button
-              onClick={() => setShowForm(!showForm)}
-              className="btn-primary text-sm px-4 py-2 rounded-lg font-medium flex items-center gap-2"
-              style={{ background: "var(--green)", color: "#080C14" }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              New Schedule
-            </button>
           </div>
 
           {/* New Schedule Form */}
@@ -222,11 +273,7 @@ export default function ScheduledPayoutsPage() {
                     value={formContractorId}
                     onChange={(e) => setFormContractorId(e.target.value)}
                     className="input-base w-full text-sm py-2 px-3 rounded-lg"
-                    style={{
-                      background: "var(--bg-elevated)",
-                      border: "1px solid var(--border)",
-                      color: "var(--text-primary)",
-                    }}
+                    style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
                   >
                     <option value="">Select...</option>
                     {contractors.map((c) => (
@@ -247,11 +294,7 @@ export default function ScheduledPayoutsPage() {
                     onChange={(e) => setFormAmount(e.target.value)}
                     placeholder="5.00"
                     className="input-base w-full text-sm py-2 px-3 rounded-lg [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    style={{
-                      background: "var(--bg-elevated)",
-                      border: "1px solid var(--border)",
-                      color: "var(--text-primary)",
-                    }}
+                    style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
                   />
                 </div>
                 <div>
@@ -262,11 +305,7 @@ export default function ScheduledPayoutsPage() {
                     value={formDay}
                     onChange={(e) => setFormDay(e.target.value)}
                     className="input-base w-full text-sm py-2 px-3 rounded-lg"
-                    style={{
-                      background: "var(--bg-elevated)",
-                      border: "1px solid var(--border)",
-                      color: "var(--text-primary)",
-                    }}
+                    style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
                   >
                     {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
                       <option key={d} value={d}>{getOrdinal(d)}</option>
@@ -294,8 +333,37 @@ export default function ScheduledPayoutsPage() {
             </div>
           )}
 
+          {/* Filter Tabs */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-1 p-1 rounded-lg" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
+              {([
+                { key: "all", label: "All" },
+                { key: "due", label: "Due", dot: true },
+                { key: "upcoming", label: "Upcoming" },
+                { key: "paused", label: "Paused" },
+              ] as { key: FilterTab; label: string; dot?: boolean }[]).map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setFilter(tab.key)}
+                  className="text-xs font-medium px-3 py-1.5 rounded-md transition-all flex items-center gap-1.5"
+                  style={{
+                    background: filter === tab.key ? "var(--bg-elevated)" : "transparent",
+                    color: filter === tab.key ? "var(--text-primary)" : "var(--text-muted)",
+                    border: filter === tab.key ? "1px solid var(--border)" : "1px solid transparent",
+                  }}
+                >
+                  {tab.dot && <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#FFAD33" }} />}
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+              Showing {filtered.length} schedule{filtered.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+
           {/* Schedule Cards */}
-          {schedules.length === 0 ? (
+          {filtered.length === 0 ? (
             <div className="card p-12 text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)" }}>
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--text-muted)" }}>
@@ -304,63 +372,95 @@ export default function ScheduledPayoutsPage() {
                   <line x1="3" y1="10" x2="21" y2="10" />
                 </svg>
               </div>
-              <p className="text-sm font-medium mb-1" style={{ color: "var(--text-primary)" }}>No scheduled payouts yet</p>
+              <p className="text-sm font-medium mb-1" style={{ color: "var(--text-primary)" }}>
+                {filter === "all" ? "No scheduled payouts yet" : `No ${filter} schedules`}
+              </p>
               <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                Create a schedule to get reminded when it&apos;s time to pay your contractors.
+                {filter === "all"
+                  ? "Create a schedule to get reminded when it's time to pay your contractors."
+                  : "Try a different filter to see your schedules."}
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {schedules.map((schedule) => {
+            <div className="space-y-3" ref={menuRef}>
+              {filtered.map((schedule) => {
                 const c = schedule.contractors;
                 const statusInfo = getStatusInfo(schedule);
                 const showPayNow = isDueOrOverdue(schedule);
                 const paidCount = schedule.payments.filter((p) => p.status === "paid").length;
+                const walletShort = c ? truncateWallet(c.solana_wallet) : "";
+                const amountWhole = Math.floor(Number(schedule.amount_usd));
+                const amountCents = (Number(schedule.amount_usd) % 1).toFixed(2).slice(1);
 
                 return (
                   <div
                     key={schedule.id}
                     className="card p-5 transition-all duration-200"
                     style={{
-                      borderColor: showPayNow ? "rgba(255,173,51,0.3)" : undefined,
-                      boxShadow: showPayNow ? "0 0 24px rgba(255,173,51,0.06)" : undefined,
+                      borderColor: (statusInfo.isDue || statusInfo.isOverdue) ? statusInfo.border : undefined,
+                      boxShadow: statusInfo.isDue
+                        ? "0 0 24px rgba(255,173,51,0.08), inset 0 0 0 1px rgba(255,173,51,0.1)"
+                        : statusInfo.isOverdue
+                          ? "0 0 24px rgba(255,92,92,0.08)"
+                          : undefined,
                     }}
                   >
                     <div className="flex items-center gap-4">
-                      {/* Avatar */}
-                      <div
-                        className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
-                        style={{ background: "linear-gradient(135deg, var(--green-light), var(--green))" }}
-                      >
-                        <span className="text-xs font-bold" style={{ color: "var(--bg-base)" }}>
-                          {c ? getInitials(c.name) : "?"}
-                        </span>
+                      {/* Avatar with status ring */}
+                      <div className="relative flex-shrink-0">
+                        <div
+                          className="w-12 h-12 rounded-full flex items-center justify-center"
+                          style={{ background: "linear-gradient(135deg, var(--green-light), var(--green))" }}
+                        >
+                          <span className="text-sm font-bold" style={{ color: "var(--bg-base)" }}>
+                            {c ? getInitials(c.name) : "?"}
+                          </span>
+                        </div>
+                        {schedule.status === "active" && (
+                          <span
+                            className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2"
+                            style={{
+                              background: statusInfo.isDue ? "#FFAD33" : statusInfo.isOverdue ? "#FF5C5C" : "var(--green)",
+                              borderColor: "var(--bg-surface)",
+                            }}
+                          />
+                        )}
                       </div>
 
                       {/* Info */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <p className="font-medium text-sm text-[var(--text-primary)] truncate">
+                        <div className="flex items-center gap-2.5 mb-1">
+                          <p className="font-semibold text-sm text-[var(--text-primary)] truncate">
                             {c?.name || "Unknown"}
                           </p>
                           <span
-                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusInfo.pulse ? "animate-pulse" : ""}`}
-                            style={{ background: statusInfo.bg, color: statusInfo.color }}
+                            className={`text-[9px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${statusInfo.isDue ? "animate-pulse" : ""}`}
+                            style={{ background: statusInfo.bg, color: statusInfo.color, border: `1px solid ${statusInfo.border}` }}
                           >
+                            {statusInfo.isDue && <span className="inline-block w-1 h-1 rounded-full mr-1" style={{ background: "#FFAD33", verticalAlign: "middle" }} />}
                             {statusInfo.label}
                           </span>
                         </div>
-                        <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                          Every {getOrdinal(schedule.day_of_month)} · {paidCount} payment{paidCount !== 1 ? "s" : ""} made
-                        </p>
+                        <div className="flex items-center gap-2 text-xs" style={{ color: "var(--text-muted)" }}>
+                          {walletShort && (
+                            <>
+                              <span className="font-mono-data" style={{ color: "var(--green)" }}>{walletShort}</span>
+                              <span style={{ opacity: 0.3 }}>·</span>
+                            </>
+                          )}
+                          <span>Every {getOrdinal(schedule.day_of_month)}</span>
+                          <span style={{ opacity: 0.3 }}>·</span>
+                          <span>{paidCount} payment{paidCount !== 1 ? "s" : ""} made</span>
+                        </div>
                       </div>
 
                       {/* Amount */}
-                      <div className="text-right flex-shrink-0 mr-4">
-                        <p className="font-mono-data text-base font-semibold" style={{ color: "var(--green)" }}>
-                          ${Number(schedule.amount_usd).toFixed(2)}
+                      <div className="text-right flex-shrink-0 mr-2">
+                        <p className="font-mono-data font-bold leading-none" style={{ color: "var(--text-primary)" }}>
+                          <span style={{ fontSize: "22px" }}>${amountWhole.toLocaleString()}</span>
+                          <span className="text-sm" style={{ color: "var(--text-muted)" }}>{amountCents}</span>
                         </p>
-                        <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>USDC / month</p>
+                        <p className="text-[9px] uppercase tracking-wider mt-0.5 font-medium" style={{ color: "var(--text-muted)" }}>USDC / month</p>
                       </div>
 
                       {/* Actions */}
@@ -368,23 +468,27 @@ export default function ScheduledPayoutsPage() {
                         {showPayNow && (
                           <button
                             onClick={() => handlePayNow(schedule)}
-                            className="text-xs font-semibold px-4 py-2 rounded-lg transition-all"
+                            className="text-xs font-semibold px-4 py-2 rounded-lg transition-all flex items-center gap-1.5"
                             style={{
                               background: "var(--green)",
                               color: "#080C14",
                               boxShadow: "0 0 16px rgba(0,230,160,0.3)",
                             }}
                           >
-                            Pay Now →
+                            Pay now
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+                            </svg>
                           </button>
                         )}
 
                         {schedule.status === "active" && (
                           <button
                             onClick={() => handleAction(schedule.id, "pause")}
-                            className="text-xs px-3 py-2 rounded-lg transition-colors"
+                            className="text-xs px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5"
                             style={{ background: "var(--bg-elevated)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
                           >
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
                             Pause
                           </button>
                         )}
@@ -392,41 +496,87 @@ export default function ScheduledPayoutsPage() {
                         {schedule.status === "paused" && (
                           <button
                             onClick={() => handleAction(schedule.id, "resume")}
-                            className="text-xs px-3 py-2 rounded-lg transition-colors"
+                            className="text-xs px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5"
                             style={{ background: "var(--green-dim)", color: "var(--green)", border: "1px solid rgba(0,230,160,0.2)" }}
                           >
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
                             Resume
                           </button>
                         )}
 
-                        {confirmCancel === schedule.id ? (
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => handleAction(schedule.id, "cancel")}
-                              className="text-[10px] px-2.5 py-1.5 rounded-md font-medium"
-                              style={{ background: "rgba(255,92,92,0.15)", color: "#FF5C5C" }}
-                            >
-                              Confirm
-                            </button>
-                            <button
-                              onClick={() => setConfirmCancel(null)}
-                              className="text-[10px] px-2.5 py-1.5 rounded-md"
-                              style={{ color: "var(--text-muted)" }}
-                            >
-                              No
-                            </button>
-                          </div>
-                        ) : (
+                        {schedule.status !== "paused" && !showPayNow && (
                           <button
-                            onClick={() => setConfirmCancel(schedule.id)}
-                            className="text-[10px] px-2 py-1.5 rounded-md transition-colors"
-                            style={{ color: "var(--text-muted)" }}
-                            onMouseEnter={(e) => (e.currentTarget.style.color = "#FF5C5C")}
-                            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-muted)")}
+                            onClick={() => handleAction(schedule.id, "cancel")}
+                            className="text-xs px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5"
+                            style={{ background: "var(--bg-elevated)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
                           >
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                             Cancel
                           </button>
                         )}
+
+                        {schedule.status === "paused" && (
+                          <button
+                            onClick={() => handleAction(schedule.id, "cancel")}
+                            className="text-xs px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5"
+                            style={{ background: "var(--bg-elevated)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
+                          >
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                            Cancel
+                          </button>
+                        )}
+
+                        {/* Three-dot menu */}
+                        <div className="relative">
+                          <button
+                            onClick={() => setOpenMenu(openMenu === schedule.id ? null : schedule.id)}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                            style={{ background: openMenu === schedule.id ? "var(--bg-elevated)" : "transparent", color: "var(--text-muted)" }}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                              <circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" />
+                            </svg>
+                          </button>
+                          {openMenu === schedule.id && (
+                            <div
+                              className="absolute right-0 top-full mt-1 w-40 rounded-xl overflow-hidden z-50 animate-fade-in"
+                              style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", boxShadow: "0 8px 24px rgba(0,0,0,0.2)" }}
+                            >
+                              <button
+                                onClick={() => { handlePayNow(schedule); setOpenMenu(null); }}
+                                className="w-full text-left px-3 py-2 text-xs transition-colors hover:bg-[var(--bg-hover)]"
+                                style={{ color: "var(--text-primary)" }}
+                              >
+                                Pay now
+                              </button>
+                              {schedule.status === "active" ? (
+                                <button
+                                  onClick={() => { handleAction(schedule.id, "pause"); }}
+                                  className="w-full text-left px-3 py-2 text-xs transition-colors hover:bg-[var(--bg-hover)]"
+                                  style={{ color: "var(--text-primary)" }}
+                                >
+                                  Pause schedule
+                                </button>
+                              ) : schedule.status === "paused" ? (
+                                <button
+                                  onClick={() => { handleAction(schedule.id, "resume"); }}
+                                  className="w-full text-left px-3 py-2 text-xs transition-colors hover:bg-[var(--bg-hover)]"
+                                  style={{ color: "var(--text-primary)" }}
+                                >
+                                  Resume schedule
+                                </button>
+                              ) : null}
+                              <div className="h-px mx-2" style={{ background: "var(--border)" }} />
+                              <button
+                                onClick={() => { handleAction(schedule.id, "cancel"); }}
+                                className="w-full text-left px-3 py-2 text-xs transition-colors hover:bg-[rgba(255,92,92,0.08)]"
+                                style={{ color: "#FF5C5C" }}
+                              >
+                                Cancel schedule
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -436,41 +586,68 @@ export default function ScheduledPayoutsPage() {
           )}
         </div>
 
-        {/* RIGHT COLUMN — Summary */}
-        <div className="flex-[5_5_0%] min-w-[240px] self-start sticky top-20 space-y-4">
+        {/* ── RIGHT COLUMN — Summary ── */}
+        <div className="flex-[5_5_0%] min-w-[260px] self-start sticky top-20 space-y-4">
+          {/* Schedule Summary */}
           <div className="card p-5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] mb-4" style={{ color: "var(--text-muted)" }}>
-              Schedule Summary
-            </p>
-            <div className="space-y-4">
-              <div>
-                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "var(--text-muted)" }}>Monthly Total</p>
-                <p className="font-mono-data text-2xl font-bold" style={{ color: "var(--green)" }}>
-                  ${totalMonthly.toFixed(2)}
-                </p>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.1em]" style={{ color: "var(--text-muted)" }}>
+                Schedule Summary
+              </p>
+              <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>{currentMonth}</p>
+            </div>
+            <div className="mb-4">
+              <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "var(--text-muted)" }}>Monthly Total</p>
+              <p className="font-mono-data font-bold leading-none" style={{ color: "var(--green)" }}>
+                <span style={{ fontSize: "32px" }}>${Math.floor(totalMonthly).toLocaleString()}</span>
+                <span className="text-base" style={{ color: "var(--text-muted)" }}>.{(totalMonthly % 1).toFixed(2).slice(2)}</span>
+                <span className="text-sm font-normal ml-1.5" style={{ color: "var(--text-muted)" }}>USDC</span>
+              </p>
+            </div>
+
+            {/* Progress bar */}
+            {totalMonthly > 0 && (
+              <div className="mb-4">
+                <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--bg-elevated)" }}>
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.min(100, (totalPaid / Math.max(totalMonthly, 1)) * 100)}%`,
+                      background: "linear-gradient(90deg, var(--green), var(--green-light))",
+                    }}
+                  />
+                </div>
+                <div className="flex justify-between mt-1.5">
+                  <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>${totalPaid.toFixed(0)} spent</p>
+                </div>
               </div>
-              <div className="h-px" style={{ background: "var(--border)" }} />
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: "var(--text-muted)" }}>Active</p>
-                  <p className="font-mono-data text-lg font-semibold text-[var(--text-primary)]">{activeSchedules.length}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: dueCount > 0 ? "#FFAD33" : "var(--text-muted)" }}>
-                    Due / Overdue
-                  </p>
-                  <p className="font-mono-data text-lg font-semibold" style={{ color: dueCount > 0 ? "#FFAD33" : "var(--text-primary)" }}>
-                    {dueCount}
-                  </p>
-                </div>
+            )}
+
+            <div className="h-px mb-4" style={{ background: "var(--border)" }} />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-lg p-3" style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)" }}>
+                <p className="text-[9px] uppercase tracking-wider mb-0.5 font-medium" style={{ color: "var(--text-muted)" }}>Active</p>
+                <p className="font-mono-data text-xl font-bold" style={{ color: "var(--green)" }}>{activeSchedules.length}</p>
+              </div>
+              <div className="rounded-lg p-3" style={{ background: dueCount > 0 ? "rgba(255,173,51,0.06)" : "var(--bg-elevated)", border: `1px solid ${dueCount > 0 ? "rgba(255,173,51,0.2)" : "var(--border)"}` }}>
+                <p className="text-[9px] uppercase tracking-wider mb-0.5 font-medium" style={{ color: dueCount > 0 ? "#FFAD33" : "var(--text-muted)" }}>
+                  Due / Overdue
+                </p>
+                <p className="font-mono-data text-xl font-bold" style={{ color: dueCount > 0 ? "#FFAD33" : "var(--text-primary)" }}>
+                  {dueCount}
+                </p>
               </div>
             </div>
           </div>
 
+          {/* How it works */}
           <div className="card p-5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] mb-3" style={{ color: "var(--text-muted)" }}>
-              How it works
-            </p>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.1em]" style={{ color: "var(--text-muted)" }}>
+                How it works
+              </p>
+              <p className="text-[10px]" style={{ color: "var(--green)" }}>~30s setup</p>
+            </div>
             <div className="space-y-0">
               {[
                 "Set a monthly schedule",
@@ -478,22 +655,53 @@ export default function ScheduledPayoutsPage() {
                 "Approve & pay via card",
                 "USDC sent automatically",
               ].map((step, i, arr) => (
-                <div key={i} className="flex gap-3 items-start">
+                <div key={i} className="flex gap-3 items-center">
                   <div className="flex flex-col items-center flex-shrink-0">
                     <div
-                      className="w-5 h-5 rounded-full flex items-center justify-center"
-                      style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)" }}
+                      className="w-6 h-6 rounded-full flex items-center justify-center"
+                      style={{
+                        background: i === 0 ? "rgba(0,230,160,0.12)" : "transparent",
+                        border: `1.5px solid ${i === 0 ? "var(--green)" : "var(--border)"}`,
+                      }}
                     >
-                      <span className="text-[9px] font-mono-data" style={{ color: "var(--text-muted)" }}>{i + 1}</span>
+                      {i === 0 ? (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                      ) : (
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--border)" }} />
+                      )}
                     </div>
                     {i < arr.length - 1 && (
-                      <div className="w-px my-1" style={{ height: "12px", background: "var(--border)" }} />
+                      <div className="w-px" style={{ height: "20px", background: "var(--border)" }} />
                     )}
                   </div>
-                  <p className="text-xs pb-2 pt-0.5" style={{ color: "var(--text-muted)" }}>{step}</p>
+                  <div className="flex items-center justify-between flex-1 pb-3 pt-0.5">
+                    <p className="text-xs" style={{ color: i === 0 ? "var(--text-primary)" : "var(--text-muted)" }}>{step}</p>
+                    <p className="text-[10px] font-mono-data" style={{ color: "var(--border-bright)", opacity: 0.5 }}>
+                      {String(i + 1).padStart(2, "0")}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Pro Tip */}
+          <div
+            className="rounded-xl p-4"
+            style={{
+              background: "linear-gradient(135deg, rgba(0,230,160,0.08) 0%, rgba(0,230,160,0.03) 100%)",
+              border: "1px solid rgba(0,230,160,0.15)",
+            }}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+              <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--green)" }}>Pro Tip</p>
+            </div>
+            <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+              Schedule all your contractor payouts for the 1st of the month — review and approve them all in one session.
+            </p>
           </div>
         </div>
       </div>
