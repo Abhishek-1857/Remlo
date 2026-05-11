@@ -96,6 +96,8 @@ interface SidebarProps {
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const [scheduledDueCount, setScheduledDueCount] = useState(0);
+  const [blockHeight, setBlockHeight] = useState<number | null>(null);
+  const [slotTime, setSlotTime] = useState<number | null>(null);
 
   useEffect(() => {
     fetch("/api/scheduled-payouts")
@@ -109,6 +111,30 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       })
       .catch(() => {});
   }, [pathname]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchBlock() {
+      try {
+        const rpcUrl = "https://api.devnet.solana.com";
+        const t0 = performance.now();
+        const res = await fetch(rpcUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getBlockHeight" }),
+        });
+        const ms = Math.round(performance.now() - t0);
+        const json = await res.json();
+        if (!cancelled && json.result) {
+          setBlockHeight(json.result);
+          setSlotTime(ms);
+        }
+      } catch { /* ignore */ }
+    }
+    fetchBlock();
+    const iv = setInterval(fetchBlock, 30000);
+    return () => { cancelled = true; clearInterval(iv); };
+  }, []);
 
   return (
     <aside
@@ -194,18 +220,24 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             <span className="w-2 h-2 rounded-full animate-pulse-slow" style={{ background: "var(--green)" }} />
           </div>
         ) : (
-          <>
+          <div
+            className="rounded-lg px-3 py-2.5"
+            style={{
+              border: "1px solid var(--border)",
+              background: "var(--bg-surface)",
+            }}
+          >
             <div className="flex items-center gap-1.5 mb-1">
               <span className="w-2 h-2 rounded-full flex-shrink-0 animate-pulse-slow" style={{ background: "var(--green)" }} />
               <span className="text-[11px] font-semibold" style={{ color: "var(--text-primary)" }}>Solana: Operational</span>
             </div>
             <p className="text-[9px] font-mono-data mb-1" style={{ color: "var(--text-muted)" }}>
-              Devnet · ~400 ms
+              {blockHeight ? `Block ${blockHeight.toLocaleString()}` : "Devnet"} · {slotTime ? `${slotTime} ms` : "~400 ms"}
             </p>
             <p className="text-[8px] uppercase tracking-[0.1em] font-semibold" style={{ color: "var(--text-muted)", opacity: 0.6 }}>
               Powered by Dodo Payments
             </p>
-          </>
+          </div>
         )}
       </div>
 
